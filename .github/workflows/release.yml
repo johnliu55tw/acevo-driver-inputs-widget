@@ -1,0 +1,96 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-2025
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Validate release tag and commit
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $tag = $env:RELEASE_TAG
+          if ($tag -cnotmatch '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
+            throw "Release tag must have the form vX.Y.Z: $tag"
+          }
+
+          git fetch origin main --no-tags
+          if ($LASTEXITCODE -ne 0) { throw 'Could not fetch main.' }
+          git merge-base --is-ancestor HEAD origin/main
+          if ($LASTEXITCODE -ne 0) { throw 'The release tag must point to a commit on main.' }
+
+          "APP_VERSION=$($tag.Substring(1))" >> $env:GITHUB_ENV
+          "RELEASE_TAG=$tag" >> $env:GITHUB_ENV
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Validate project
+        shell: pwsh
+        run: dotnet build .\ACEvo-Simple-Telemetry.csproj -c Release -p:Version=$env:APP_VERSION
+
+      - name: Publish compressed self-contained EXE
+        shell: pwsh
+        run: |
+          dotnet publish .\ACEvo-Simple-Telemetry.csproj -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true -p:DebugType=None `
+            -p:Version=$env:APP_VERSION -o .\artifacts\release\self-contained
+
+      - name: Publish framework-dependent EXE
+        shell: pwsh
+        run: |
+          dotnet publish .\ACEvo-Simple-Telemetry.csproj -c Release -r win-x64 --self-contained false `
+            -p:PublishSingleFile=true -p:DebugType=None `
+            -p:Version=$env:APP_VERSION -o .\artifacts\release\framework-dependent
+
+      - name: Check and name release files
+        shell: pwsh
+        run: |
+          $outputs = @(
+            @{ Folder = 'self-contained'; Suffix = 'self-contained' },
+            @{ Folder = 'framework-dependent'; Suffix = 'framework-dependent' }
+          )
+          New-Item -ItemType Directory -Path .\artifacts\release\dist | Out-Null
+          foreach ($output in $outputs) {
+            $folder = Join-Path .\artifacts\release $output.Folder
+            $files = @(Get-ChildItem -LiteralPath $folder -File)
+            if ($files.Count -ne 1 -or $files[0].Name -ne 'ACEvo-Simple-Telemetry.exe') {
+              throw "Expected exactly one EXE in $folder; found $($files.Count) file(s)."
+            }
+            if ($files[0].VersionInfo.FileVersion -ne "$env:APP_VERSION.0") {
+              throw "Unexpected file version in $folder: $($files[0].VersionInfo.FileVersion)"
+            }
+            $name = "ACEvo-Simple-Telemetry-$($env:RELEASE_TAG)-win-x64-$($output.Suffix).exe"
+            Copy-Item -LiteralPath $files[0].FullName -Destination (Join-Path .\artifacts\release\dist $name)
+          }
+          Get-ChildItem .\artifacts\release\dist -File | ForEach-Object {
+            Write-Host "$($_.Name): $($_.Length) bytes"
+          }
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create $env:RELEASE_TAG .\artifacts\release\dist\*.exe `
+            --verify-tag --generate-notes --title $env:RELEASE_TAG

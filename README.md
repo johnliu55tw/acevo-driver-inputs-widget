@@ -19,7 +19,19 @@ The control bar also has a lock button that prevents dragging and edge resizing.
 
 During a Live session, the telemetry layout is shown without a status message. The entire control bar appears only while the pointer is over the overlay. Outside a Live session, the control bar stays visible with a waiting, replay, or pause message. The telemetry layout remains visible if **Always show telemetry graph** is checked; otherwise, the overlay collapses to the compact status and control bar.
 
-## Run
+## Installation
+
+1. Open the [latest GitHub Release](https://github.com/johnliu55tw/acevo-driver-inputs-widget/releases/latest) and download one Windows x64 executable:
+   - **`*-self-contained.exe`** is the compressed standalone build. It needs no separate .NET installation.
+   - **`*-framework-dependent.exe`** is the smaller build. Install the [Windows x64 .NET 10 Desktop Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) before running it. On the download page, choose **.NET Desktop Runtime → Windows x64 installer**; the plain .NET Runtime is not sufficient for this WPF app.
+2. Save the executable wherever you want to keep the app and run it. There is no installer. To update, download the new version from Releases and replace the old executable.
+3. Start Assetto Corsa EVO and enter a driving session. Run the game and overlay in the same Windows session and at compatible privilege levels (normally, neither as Administrator).
+
+Use **Borderless Fullscreen** or **Windowed** display mode in AC EVO. Windows cannot show a normal WPF overlay above a true exclusive-fullscreen DirectX surface.
+
+Version history and release notes are on the [Releases page](https://github.com/johnliu55tw/acevo-driver-inputs-widget/releases).
+
+## Run from source
 
 Requirements: Windows and the .NET 10 SDK.
 
@@ -40,6 +52,19 @@ To print raw telemetry to a console, start the executable with `--console-log`:
 ```
 
 The console receives packet-consistent hybrid snapshots at up to 10 Hz. It includes physics pedals and intervention signals alongside graphics status, gear, steering, and intervention signals. Unchanged packets are suppressed. Without this argument, no console is attached and no debug telemetry is written anywhere.
+
+## Releasing
+
+Finish and push changes on `main`, then create and push a version tag:
+
+```powershell
+git switch main
+git pull --ff-only
+git tag -a v0.1.0 -m "v0.1.0"
+git push origin v0.1.0
+```
+
+Replace `v0.1.0` with the next `vX.Y.Z` version. Pushing the tag runs the [release workflow](.github/workflows/release.yml), which validates the project, builds both Windows x64 executables, and publishes them in the matching GitHub Release. The tag supplies the version in the executable metadata and download names. GitHub Release notes serve as the changelog; edit the generated notes to add a short user-facing summary when needed.
 
 ## Telemetry implementation
 
