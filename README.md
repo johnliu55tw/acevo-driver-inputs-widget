@@ -56,7 +56,7 @@ Only the documented fields required by this overlay are read:
 | Graphics | 68 | `int16` | `gear_int` (`0=R`, `1=N`, `2=1st`, …) |
 | Graphics | 156 | `int32` | signed `steer_degrees` |
 
-Pedals come from physics while steering uses the graphics block's degree value. TC and ABS activity are merged from the physics `*InAction` flag, physics intervention intensity, and graphics active flag so any source can mark an intervention.
+Pedals come from physics while steering uses the graphics block's degree value. The raw physics clutch value is inverted at the reader boundary so the displayed clutch follows the overlay's pedal convention. TC and ABS activity are merged from the physics `*InAction` flag, physics intervention intensity, and graphics active flag so any source can mark an intervention.
 
 The reader checks each block's packet id before and after its own snapshot. If either block is being updated, that combined sample is skipped rather than treating independently produced physics and graphics pages as one synchronized frame.
 

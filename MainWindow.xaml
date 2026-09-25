@@ -114,12 +114,12 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <Grid x:Name="ThrottleGauge" Grid.Column="0" Width="36">
-                        <ProgressBar x:Name="ThrottleBar" Orientation="Vertical" Minimum="0" Maximum="100"
-                                     Width="30" Foreground="#2ED06E" Background="{DynamicResource GaugeTrackBrush}"
+                    <Grid x:Name="ClutchGauge" Grid.Column="0" Width="36">
+                        <ProgressBar x:Name="ClutchBar" Orientation="Vertical" Minimum="0" Maximum="100"
+                                     Width="30" Foreground="#4CA6FF" Background="{DynamicResource GaugeTrackBrush}"
                                      BorderBrush="{DynamicResource ControlBorderBrush}"
                                      VerticalAlignment="Stretch"/>
-                        <TextBlock x:Name="ThrottleValue" Text="0" FontSize="16" FontWeight="Bold"
+                        <TextBlock x:Name="ClutchValue" Text="0" FontSize="16" FontWeight="Bold"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="1"/>
                     </Grid>
                     <Grid x:Name="BrakeGauge" Grid.Column="1" Width="36">
@@ -130,12 +130,12 @@
                         <TextBlock x:Name="BrakeValue" Text="0" FontSize="16" FontWeight="Bold"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="1"/>
                     </Grid>
-                    <Grid x:Name="ClutchGauge" Grid.Column="2" Width="36">
-                        <ProgressBar x:Name="ClutchBar" Orientation="Vertical" Minimum="0" Maximum="100"
-                                     Width="30" Foreground="#4CA6FF" Background="{DynamicResource GaugeTrackBrush}"
+                    <Grid x:Name="ThrottleGauge" Grid.Column="2" Width="36">
+                        <ProgressBar x:Name="ThrottleBar" Orientation="Vertical" Minimum="0" Maximum="100"
+                                     Width="30" Foreground="#2ED06E" Background="{DynamicResource GaugeTrackBrush}"
                                      BorderBrush="{DynamicResource ControlBorderBrush}"
                                      VerticalAlignment="Stretch"/>
-                        <TextBlock x:Name="ClutchValue" Text="0" FontSize="16" FontWeight="Bold"
+                        <TextBlock x:Name="ThrottleValue" Text="0" FontSize="16" FontWeight="Bold"
                                    HorizontalAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="1"/>
                     </Grid>
                 </Grid>

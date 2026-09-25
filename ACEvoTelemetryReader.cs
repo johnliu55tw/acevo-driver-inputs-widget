@@ -174,7 +174,7 @@ public sealed class ACEvoTelemetryReader : IDisposable
                 (ACEvoStatus)statusRaw,
                 Math.Clamp(throttle, 0f, 1f),
                 Math.Clamp(brake, 0f, 1f),
-                Math.Clamp(clutch, 0f, 1f),
+                1f - Math.Clamp(clutch, 0f, 1f),
                 tcActive,
                 absActive,
                 gear,

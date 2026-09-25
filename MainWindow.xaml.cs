@@ -11,12 +11,6 @@ namespace ACEvo_Simple_Telemetry;
 
 public partial class MainWindow : Window
 {
-    private enum DisplayState
-    {
-        GameNotRunning,
-        GameStatus
-    }
-
     private const double LogicalMinWidth = 560;
     private const double LogicalMinTelemetryHeight = 180;
     private const double LogicalStatusWidth = 360;
@@ -36,9 +30,7 @@ public partial class MainWindow : Window
     private double _liveLogicalWidth = 980;
     private double _liveLogicalHeight = 286;
     private double _statusLogicalWidth = LogicalStatusWidth;
-    private DisplayState _displayState;
     private ACEvoStatus? _displayStatus;
-    private bool _hasDisplayState;
     private bool _isLiveDisplay;
     private HwndSource? _windowSource;
 
@@ -49,7 +41,7 @@ public partial class MainWindow : Window
         DebugLog.Info("AC EVO Simple Telemetry started.");
         _settings = AppSettings.Load();
         ApplySavedSettings();
-        SetDisplayStatus(null);
+        SetDisplayStatus(ACEvoStatus.Off);
 
         _timer = new DispatcherTimer(DispatcherPriority.Render)
         {
@@ -92,7 +84,7 @@ public partial class MainWindow : Window
         {
             if (!_reader.IsConnected)
             {
-                SetDisplayStatus(null);
+                SetDisplayStatus(ACEvoStatus.Off);
             }
             return;
         }
@@ -136,33 +128,27 @@ public partial class MainWindow : Window
         _ => "–"
     };
 
-    private void SetDisplayStatus(ACEvoStatus? status)
+    private void SetDisplayStatus(ACEvoStatus status)
     {
-        DisplayState displayState = status.HasValue ? DisplayState.GameStatus : DisplayState.GameNotRunning;
-        bool hadDisplayState = _hasDisplayState;
-        bool stateChanged = !hadDisplayState || _displayState != displayState;
+        bool hadDisplayState = _displayStatus.HasValue;
         bool showLive = status == ACEvoStatus.Live;
 
-        _displayState = displayState;
         _displayStatus = status;
-        _hasDisplayState = true;
         StatusText.Text = status switch
         {
-            null => "Waiting for game to start...",
             ACEvoStatus.Replay => "Replay in progress...",
             ACEvoStatus.Pause => "Paused",
             _ => "Waiting for session to start..."
         };
         Title = status switch
         {
-            null => "AC EVO Simple Telemetry — Waiting for game to start",
             ACEvoStatus.Live => "AC EVO Simple Telemetry — Live",
             ACEvoStatus.Replay => "AC EVO Simple Telemetry — Replay",
             ACEvoStatus.Pause => "AC EVO Simple Telemetry — Paused",
             _ => "AC EVO Simple Telemetry — Waiting for session"
         };
 
-        if (!stateChanged && showLive == _isLiveDisplay)
+        if (hadDisplayState && showLive == _isLiveDisplay)
         {
             return;
         }
