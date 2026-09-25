@@ -100,7 +100,7 @@ public partial class MainWindow : Window
         }
 
         SetDisplayStatus(sample.Status);
-        if (sample.Status == ACEvoStatus.Live)
+        if (sample.Status is ACEvoStatus.Live or ACEvoStatus.Pause)
         {
             UpdateTelemetry(sample);
         }
@@ -161,7 +161,7 @@ public partial class MainWindow : Window
         };
 
         bool wasTelemetryDisplay = IsTelemetryDisplay;
-        bool showTelemetry = showLive || _settings.AlwaysShowTelemetryGraph;
+        bool showTelemetry = showLive || status == ACEvoStatus.Pause || _settings.AlwaysShowTelemetryGraph;
         if (hadDisplayState && showLive == _isLiveDisplay && showTelemetry == wasTelemetryDisplay)
         {
             return;
@@ -181,11 +181,6 @@ public partial class MainWindow : Window
         StatusArea.Visibility = showTelemetry ? Visibility.Collapsed : Visibility.Visible;
         UpdateControlBarVisibility();
         ApplyWindowResizeState();
-
-        if (showLive)
-        {
-            PedalGraph.Clear();
-        }
 
         UpdateMinimumSize();
         double width = (showTelemetry
