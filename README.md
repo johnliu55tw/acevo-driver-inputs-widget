@@ -5,7 +5,7 @@ A small, always-on-top WPF overlay for **Assetto Corsa EVO**. It shows:
 - steering-wheel rotation and angle;
 - current gear;
 - vertical throttle, brake, and clutch gauges;
-- a scrolling graph for the same three pedal inputs.
+- a scrolling graph for the same three pedal inputs, with the brake trace turning yellow while ABS is active.
 
 The settings panel lets you independently show or hide each pedal input, choose a graph history from 5–30 seconds, scale the complete overlay from 75–200%, and switch between dark and light themes. Preferences are saved automatically.
 
@@ -31,7 +31,7 @@ To print raw telemetry to a console, start the executable with `--console-log`:
 .\bin\Release\net10.0-windows\ACEvo-Simple-Telemetry.exe --console-log
 ```
 
-The console receives consistent graphics-block snapshots at up to 10 Hz: packet ID, raw `ACEVO_STATUS`, throttle, brake, clutch, raw gear, and signed steering degrees. Unchanged packets are suppressed. Without this argument, no console is attached and no debug telemetry is written anywhere.
+The console receives consistent graphics-block snapshots at up to 10 Hz: packet ID, raw `ACEVO_STATUS`, ABS-active state, throttle, brake, clutch, raw gear, and signed steering degrees. Unchanged packets are suppressed. Without this argument, no console is attached and no debug telemetry is written anywhere.
 
 ## Telemetry implementation
 
@@ -43,6 +43,7 @@ Only the documented fields required by this overlay are read:
 | ---: | --- | --- |
 | 0 | `int32` | packet id |
 | 4 | `int32` | `status` (`0=off`, `1=replay`, `2=live`, `3=pause`) |
+| 46 | `bool` | `abs_active` |
 | 68 | `int16` | `gear_int` (`0=R`, `1=N`, `2=1st`, …) |
 | 76 | `float` | `gas_percent` (`0..1`) |
 | 80 | `float` | `brake_percent` (`0..1`) |

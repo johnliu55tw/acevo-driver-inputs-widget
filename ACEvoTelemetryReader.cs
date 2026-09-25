@@ -18,6 +18,7 @@ public sealed class ACEvoTelemetryReader : IDisposable
     // embedded substructure.
     private const long PacketIdOffset = 0;
     private const long StatusOffset = 4;             // int32 ACEVO_STATUS
+    private const long AbsActiveOffset = 46;         // bool (1 byte)
     private const long GearOffset = 68;              // int16 gear_int
     private const long GasPercentOffset = 76;        // float
     private const long BrakePercentOffset = 80;      // float
@@ -75,6 +76,7 @@ public sealed class ACEvoTelemetryReader : IDisposable
             // A packet-id check avoids displaying a partially updated graphics frame.
             int packetBefore = view.ReadInt32(PacketIdOffset);
             int statusRaw = view.ReadInt32(StatusOffset);
+            bool absActive = view.ReadBoolean(AbsActiveOffset);
             int gear = view.ReadInt16(GearOffset);
             float throttle = view.ReadSingle(GasPercentOffset);
             float brake = view.ReadSingle(BrakePercentOffset);
@@ -102,7 +104,7 @@ public sealed class ACEvoTelemetryReader : IDisposable
                 return false;
             }
 
-            DebugLog.Telemetry(packetAfter, statusRaw, throttle, brake, clutch, gear, steerDegrees);
+            DebugLog.Telemetry(packetAfter, statusRaw, absActive, throttle, brake, clutch, gear, steerDegrees);
 
             sample = new TelemetrySample(
                 packetAfter,
@@ -110,6 +112,7 @@ public sealed class ACEvoTelemetryReader : IDisposable
                 Math.Clamp(throttle, 0f, 1f),
                 Math.Clamp(brake, 0f, 1f),
                 Math.Clamp(clutch, 0f, 1f),
+                absActive,
                 gear,
                 steerDegrees * (float)(Math.PI / 180.0));
             return true;
@@ -148,5 +151,6 @@ public readonly record struct TelemetrySample(
     float Throttle,
     float Brake,
     float Clutch,
+    bool AbsActive,
     int Gear,
     float SteeringRadians);

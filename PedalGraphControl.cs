@@ -9,6 +9,7 @@ public sealed class PedalGraphControl : FrameworkElement
     private static readonly Stopwatch Clock = Stopwatch.StartNew();
     private static readonly Pen ThrottlePen = CreatePen(Color.FromRgb(46, 208, 110));
     private static readonly Pen BrakePen = CreatePen(Color.FromRgb(255, 75, 85));
+    private static readonly Pen AbsBrakePen = CreatePen(Color.FromRgb(255, 214, 10));
     private static readonly Pen ClutchPen = CreatePen(Color.FromRgb(76, 166, 255));
 
     private readonly List<GraphSample> _samples = [];
@@ -41,10 +42,10 @@ public sealed class PedalGraphControl : FrameworkElement
         set { _timeSpanSeconds = Math.Clamp(value, 5, 30); Trim(Clock.Elapsed.TotalSeconds); InvalidateVisual(); }
     }
 
-    public void AddSample(float throttle, float brake, float clutch)
+    public void AddSample(float throttle, float brake, float clutch, bool absActive)
     {
         double now = Clock.Elapsed.TotalSeconds;
-        _samples.Add(new GraphSample(now, throttle, brake, clutch));
+        _samples.Add(new GraphSample(now, throttle, brake, clutch, absActive));
         Trim(now);
         InvalidateVisual();
     }
@@ -83,7 +84,7 @@ public sealed class PedalGraphControl : FrameworkElement
         double now = Clock.Elapsed.TotalSeconds;
         drawingContext.PushClip(new RectangleGeometry(bounds));
         if (ShowThrottle) DrawSeries(drawingContext, now, static s => s.Throttle, ThrottlePen);
-        if (ShowBrake) DrawSeries(drawingContext, now, static s => s.Brake, BrakePen);
+        if (ShowBrake) DrawBrakeSeries(drawingContext, now);
         if (ShowClutch) DrawSeries(drawingContext, now, static s => s.Clutch, ClutchPen);
         drawingContext.Pop();
     }
@@ -126,6 +127,47 @@ public sealed class PedalGraphControl : FrameworkElement
         context.DrawGeometry(null, pen, geometry);
     }
 
+    private void DrawBrakeSeries(DrawingContext context, double now)
+    {
+        if (_samples.Count < 2)
+        {
+            return;
+        }
+
+        StreamGeometry normalGeometry = new();
+        StreamGeometry absGeometry = new();
+        using (StreamGeometryContext normalPath = normalGeometry.Open())
+        using (StreamGeometryContext absPath = absGeometry.Open())
+        {
+            Point? previousPoint = null;
+            foreach (GraphSample sample in _samples)
+            {
+                double age = now - sample.Time;
+                if (age > TimeSpanSeconds)
+                {
+                    continue;
+                }
+
+                double x = ActualWidth * (1.0 - age / TimeSpanSeconds);
+                double y = ActualHeight * (1.0 - Math.Clamp(sample.Brake, 0f, 1f));
+                Point point = new(x, y);
+                if (previousPoint is Point start)
+                {
+                    StreamGeometryContext path = sample.AbsActive ? absPath : normalPath;
+                    path.BeginFigure(start, false, false);
+                    path.LineTo(point, true, false);
+                }
+
+                previousPoint = point;
+            }
+        }
+
+        normalGeometry.Freeze();
+        absGeometry.Freeze();
+        context.DrawGeometry(null, BrakePen, normalGeometry);
+        context.DrawGeometry(null, AbsBrakePen, absGeometry);
+    }
+
     private void Trim(double now)
     {
         double oldest = now - TimeSpanSeconds - 0.25;
@@ -156,5 +198,10 @@ public sealed class PedalGraphControl : FrameworkElement
     private Brush FindBrush(string resourceKey, Color fallback) =>
         TryFindResource(resourceKey) as Brush ?? new SolidColorBrush(fallback);
 
-    private readonly record struct GraphSample(double Time, float Throttle, float Brake, float Clutch);
+    private readonly record struct GraphSample(
+        double Time,
+        float Throttle,
+        float Brake,
+        float Clutch,
+        bool AbsActive);
 }
