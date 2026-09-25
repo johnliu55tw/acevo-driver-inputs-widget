@@ -15,6 +15,7 @@ public sealed class AppSettings
     public bool ShowBrake { get; set; } = true;
     public bool ShowClutch { get; set; } = true;
     public int GraphTimeSpanSeconds { get; set; } = 10;
+    public bool PositionLocked { get; set; }
     public double WindowScale { get; set; } = 1.0;
     public double? WindowLeft { get; set; }
     public double? WindowTop { get; set; }

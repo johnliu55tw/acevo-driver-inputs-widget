@@ -2,9 +2,11 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Shell;
 using System.Windows.Threading;
 
 namespace ACEvo_Simple_Telemetry;
@@ -33,6 +35,7 @@ public partial class MainWindow : Window
     private double _statusLogicalHeight = LogicalStatusHeight;
     private ACEvoStatus? _displayStatus;
     private bool _isLiveDisplay;
+    private bool _isPositionLocked;
     private HwndSource? _windowSource;
 
     public MainWindow()
@@ -168,6 +171,7 @@ public partial class MainWindow : Window
         _isLiveDisplay = showLive;
         TelemetryArea.Visibility = showLive ? Visibility.Visible : Visibility.Collapsed;
         StatusArea.Visibility = showLive ? Visibility.Collapsed : Visibility.Visible;
+        ApplyWindowResizeState();
 
         if (showLive)
         {
@@ -328,9 +332,28 @@ public partial class MainWindow : Window
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 
+    private void PositionLockButton_Click(object sender, RoutedEventArgs e)
+    {
+        _isPositionLocked = ((ToggleButton)sender).IsChecked == true;
+        StatusLockButton.IsChecked = _isPositionLocked;
+        TelemetryLockButton.IsChecked = _isPositionLocked;
+        ApplyWindowResizeState();
+        SaveSettings();
+    }
+
+    private void ApplyWindowResizeState()
+    {
+        bool canResize = _isLiveDisplay && !_isPositionLocked;
+        ResizeMode = canResize ? ResizeMode.CanResize : ResizeMode.NoResize;
+        if (WindowChrome.GetWindowChrome(this) is { } chrome)
+        {
+            chrome.ResizeBorderThickness = new Thickness(canResize ? 7 : 0);
+        }
+    }
+
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.LeftButton == MouseButtonState.Pressed)
+        if (!_isPositionLocked && e.LeftButton == MouseButtonState.Pressed)
         {
             DragMove();
         }
@@ -537,6 +560,10 @@ public partial class MainWindow : Window
 
     private void ApplySavedSettings()
     {
+        _isPositionLocked = _settings.PositionLocked;
+        StatusLockButton.IsChecked = _isPositionLocked;
+        TelemetryLockButton.IsChecked = _isPositionLocked;
+        ApplyWindowResizeState();
         ThrottleCheck.IsChecked = _settings.ShowThrottle;
         BrakeCheck.IsChecked = _settings.ShowBrake;
         ClutchCheck.IsChecked = _settings.ShowClutch;
@@ -641,6 +668,7 @@ public partial class MainWindow : Window
         _settings.ShowBrake = BrakeCheck.IsChecked == true;
         _settings.ShowClutch = ClutchCheck.IsChecked == true;
         _settings.GraphTimeSpanSeconds = (int)Math.Round(TimeSpanSlider.Value);
+        _settings.PositionLocked = _isPositionLocked;
         _settings.WindowScale = _currentScale;
         _settings.LiveWindowWidth = _liveLogicalWidth;
         _settings.LiveWindowHeight = _liveLogicalHeight;

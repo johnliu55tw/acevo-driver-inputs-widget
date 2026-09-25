@@ -43,6 +43,50 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Padding" Value="7,3"/>
         </Style>
+        <Style x:Key="PositionLockButtonStyle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="ToolTip" Value="Lock dragging and edge resizing"/>
+            <Setter Property="AutomationProperties.Name" Value="Lock dragging and edge resizing"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="Transparent" Padding="7,3">
+                            <Grid Width="18" Height="20">
+                                <Path x:Name="Shackle" Data="M5,9 L5,5 C5,0 13,0 13,5 L13,6"
+                                      Stroke="{TemplateBinding Foreground}" StrokeThickness="1.6"/>
+                                <Rectangle Margin="2,8,2,2" RadiusX="1" RadiusY="1"
+                                           Stroke="{TemplateBinding Foreground}" StrokeThickness="1.6"/>
+                                <Ellipse Width="2" Height="2" Margin="0,5,0,0"
+                                         Fill="{TemplateBinding Foreground}"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Shackle" Property="Data" Value="M5,9 L5,5 C5,0 13,0 13,5 L13,9"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Shackle" Property="Data" Value="M5,9 L5,5 C5,0 13,0 13,5 L13,9"/>
+                            </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsChecked" Value="True"/>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Shackle" Property="Data" Value="M5,9 L5,5 C5,0 13,0 13,5 L13,6"/>
+                            </MultiTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="ToolTip" Value="Unlock dragging and edge resizing"/>
+                    <Setter Property="AutomationProperties.Name" Value="Unlock dragging and edge resizing"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Border x:Name="ScaledRoot" Width="980" Height="286"
@@ -66,6 +110,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
@@ -73,7 +118,10 @@
                         Content="✕" FontSize="13" ToolTip="Close" Click="CloseButton_Click"/>
                 <Button Grid.Column="1" Style="{StaticResource StatusActionButtonStyle}"
                         Content="⚙" FontSize="17" ToolTip="Settings" Click="SettingsButton_Click"/>
-                <TextBlock x:Name="StatusText" Grid.Column="2" Text="Waiting for session to start..."
+                <ToggleButton x:Name="StatusLockButton" Grid.Column="2"
+                              Style="{StaticResource PositionLockButtonStyle}" VerticalAlignment="Stretch"
+                              Click="PositionLockButton_Click"/>
+                <TextBlock x:Name="StatusText" Grid.Column="3" Text="Waiting for session to start..."
                            FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"
                            Margin="16,0,8,0"/>
             </Grid>
@@ -159,8 +207,10 @@
                         </Style>
                     </Border.Style>
                     <StackPanel Orientation="Horizontal">
-                        <Button Content="⚙" FontSize="17" ToolTip="Settings" Click="SettingsButton_Click"/>
                         <Button Content="✕" FontSize="13" ToolTip="Close" Click="CloseButton_Click"/>
+                        <Button Content="⚙" FontSize="17" ToolTip="Settings" Click="SettingsButton_Click"/>
+                        <ToggleButton x:Name="TelemetryLockButton" Style="{StaticResource PositionLockButtonStyle}"
+                                      Click="PositionLockButton_Click"/>
                     </StackPanel>
                 </Border>
             </Grid>
