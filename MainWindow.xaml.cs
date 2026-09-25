@@ -163,6 +163,8 @@ public partial class MainWindow : Window
             RememberCurrentDisplaySize();
         }
 
+        double anchorLeft = Left;
+        double anchorTop = Top;
         _isLiveDisplay = showLive;
         TelemetryArea.Visibility = showLive ? Visibility.Visible : Visibility.Collapsed;
         StatusArea.Visibility = showLive ? Visibility.Collapsed : Visibility.Visible;
@@ -173,12 +175,27 @@ public partial class MainWindow : Window
         }
 
         UpdateMinimumSize();
-        Width = (showLive
+        double width = (showLive
             ? Math.Max(LogicalMinWidth, _liveLogicalWidth)
             : SettingsPanel.Visibility == Visibility.Visible
                 ? Math.Max(LogicalSettingsMinWidth, _liveLogicalWidth)
                 : Math.Max(LogicalStatusWidth, _statusLogicalWidth)) * _currentScale;
-        Height = ((showLive ? _liveLogicalHeight : _statusLogicalHeight) + settingsHeight) * _currentScale;
+        double height = ((showLive ? _liveLogicalHeight : _statusLogicalHeight) + settingsHeight) * _currentScale;
+        SetSizeFromTopLeft(width, height, anchorLeft, anchorTop);
+    }
+
+    private void SetSizeFromTopLeft(double width, double height, double anchorLeft, double anchorTop)
+    {
+        Width = width;
+        Height = height;
+        if (double.IsFinite(anchorLeft))
+        {
+            Left = anchorLeft;
+        }
+        if (double.IsFinite(anchorTop))
+        {
+            Top = anchorTop;
+        }
         SyncScaledRootSize();
     }
 
@@ -397,14 +414,18 @@ public partial class MainWindow : Window
         double currentHeight = ActualHeight > 0 ? ActualHeight : Height;
         double logicalWidth = currentWidth / oldScale;
         double logicalHeight = currentHeight / oldScale;
+        double anchorLeft = Left;
+        double anchorTop = Top;
 
         _currentScale = scale;
         ScaleValueText.Text = $"{scale * 100:0}%";
         ScaledRoot.LayoutTransform = new ScaleTransform(scale, scale);
         UpdateMinimumSize();
-        Width = Math.Max(MinWidth, logicalWidth * scale);
-        Height = Math.Max(MinHeight, logicalHeight * scale);
-        SyncScaledRootSize();
+        SetSizeFromTopLeft(
+            Math.Max(MinWidth, logicalWidth * scale),
+            Math.Max(MinHeight, logicalHeight * scale),
+            anchorLeft,
+            anchorTop);
         if (save && IsLoaded)
         {
             SaveSettings();
