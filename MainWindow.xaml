@@ -191,22 +191,26 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="25,0,0,0">
                         <StackPanel>
                             <TextBlock Text="WINDOW SCALE" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                            <ComboBox x:Name="ScaleCombo" SelectedIndex="1" Width="110" HorizontalAlignment="Left"
-                                      Margin="0,8,0,0" SelectionChanged="ScaleCombo_SelectionChanged">
-                                <ComboBoxItem Tag="0.75">75%</ComboBoxItem>
-                                <ComboBoxItem Tag="1">100%</ComboBoxItem>
-                                <ComboBoxItem Tag="1.25">125%</ComboBoxItem>
-                                <ComboBoxItem Tag="1.5">150%</ComboBoxItem>
-                                <ComboBoxItem Tag="2">200%</ComboBoxItem>
-                            </ComboBox>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button Content="−" Width="28" FontSize="16" FontWeight="SemiBold"
+                                        ToolTip="Decrease scale" Click="ScaleDownButton_Click"/>
+                                <TextBlock x:Name="ScaleValueText" Text="100%" Width="54"
+                                           FontSize="14" FontWeight="SemiBold" TextAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                                <Button Content="+" Width="28" FontSize="16" FontWeight="SemiBold"
+                                        ToolTip="Increase scale" Click="ScaleUpButton_Click"/>
+                            </StackPanel>
                         </StackPanel>
                         <StackPanel Margin="15,0,0,0">
                             <TextBlock Text="THEME" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"/>
-                            <ComboBox x:Name="ThemeCombo" SelectedIndex="0" Width="105" HorizontalAlignment="Left"
-                                      Margin="0,8,0,0" SelectionChanged="ThemeCombo_SelectionChanged">
-                                <ComboBoxItem Tag="Dark">Dark</ComboBoxItem>
-                                <ComboBoxItem Tag="Light">Light</ComboBoxItem>
-                            </ComboBox>
+                            <StackPanel Margin="0,5,0,0">
+                                <RadioButton x:Name="DarkThemeRadio" Content="Dark" GroupName="Theme"
+                                             IsChecked="True" Foreground="{DynamicResource PrimaryTextBrush}"
+                                             Margin="0,2" Checked="ThemeRadio_Checked"/>
+                                <RadioButton x:Name="LightThemeRadio" Content="Light" GroupName="Theme"
+                                             Foreground="{DynamicResource PrimaryTextBrush}"
+                                             Margin="0,2" Checked="ThemeRadio_Checked"/>
+                            </StackPanel>
                         </StackPanel>
                     </StackPanel>
                 </Grid>

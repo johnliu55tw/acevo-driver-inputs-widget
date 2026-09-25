@@ -17,6 +17,8 @@ public partial class MainWindow : Window
     private const double LogicalStatusHeight = 58;
     private const double LogicalSettingsMinWidth = 820;
     private const double CornerRadius = 10;
+    private static readonly bool NativeTopmostEnforcementEnabled = true;
+    private static readonly double[] SupportedScales = [0.5, 0.6, 0.75, 1.0, 1.25, 1.5, 2.0];
 
     private readonly ACEvoTelemetryReader _reader = new();
     private readonly DispatcherTimer _timer;
@@ -47,9 +49,12 @@ public partial class MainWindow : Window
         _timer.Tick += Timer_Tick;
         _timer.Start();
 
-        SourceInitialized += (_, _) => EnsureTopmost();
-        Activated += (_, _) => EnsureTopmost();
-        Deactivated += (_, _) => EnsureTopmost();
+        if (NativeTopmostEnforcementEnabled)
+        {
+            SourceInitialized += (_, _) => EnsureTopmost();
+            Activated += (_, _) => EnsureTopmost();
+            Deactivated += (_, _) => EnsureTopmost();
+        }
 
         Closed += (_, _) =>
         {
@@ -61,7 +66,7 @@ public partial class MainWindow : Window
 
     private void Timer_Tick(object? sender, EventArgs e)
     {
-        if (DateTime.UtcNow >= _nextTopmostRefresh)
+        if (NativeTopmostEnforcementEnabled && DateTime.UtcNow >= _nextTopmostRefresh)
         {
             EnsureTopmost();
             _nextTopmostRefresh = DateTime.UtcNow.AddSeconds(1);
@@ -283,10 +288,34 @@ public partial class MainWindow : Window
         }
     }
 
-    private void ScaleCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void ScaleDownButton_Click(object sender, RoutedEventArgs e) => StepScale(-1);
+
+    private void ScaleUpButton_Click(object sender, RoutedEventArgs e) => StepScale(1);
+
+    private void StepScale(int direction)
     {
-        if (ScaledRoot is null || ScaleCombo.SelectedItem is not ComboBoxItem item ||
-            !double.TryParse(item.Tag?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double scale))
+        int currentIndex = 0;
+        double smallestDifference = double.MaxValue;
+        for (int i = 0; i < SupportedScales.Length; i++)
+        {
+            double difference = Math.Abs(SupportedScales[i] - _currentScale);
+            if (difference < smallestDifference)
+            {
+                smallestDifference = difference;
+                currentIndex = i;
+            }
+        }
+
+        int newIndex = Math.Clamp(currentIndex + direction, 0, SupportedScales.Length - 1);
+        if (newIndex != currentIndex)
+        {
+            ApplyWindowScale(SupportedScales[newIndex], save: true);
+        }
+    }
+
+    private void ApplyWindowScale(double scale, bool save)
+    {
+        if (ScaledRoot is null)
         {
             return;
         }
@@ -298,12 +327,13 @@ public partial class MainWindow : Window
         double logicalHeight = currentHeight / oldScale;
 
         _currentScale = scale;
+        ScaleValueText.Text = $"{scale * 100:0}%";
         ScaledRoot.LayoutTransform = new ScaleTransform(scale, scale);
         UpdateMinimumSize();
         Width = Math.Max(MinWidth, logicalWidth * scale);
         Height = Math.Max(MinHeight, logicalHeight * scale);
         SyncScaledRootSize();
-        if (IsLoaded)
+        if (save && IsLoaded)
         {
             SaveSettings();
         }
@@ -352,14 +382,14 @@ public partial class MainWindow : Window
             CornerRadius);
     }
 
-    private void ThemeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private void ThemeRadio_Checked(object sender, RoutedEventArgs e)
     {
-        if (ThemeCombo.SelectedItem is not ComboBoxItem item)
+        if (LightThemeRadio is null)
         {
             return;
         }
 
-        ApplyTheme(string.Equals(item.Tag?.ToString(), "Light", StringComparison.OrdinalIgnoreCase));
+        ApplyTheme(LightThemeRadio.IsChecked == true);
         if (IsLoaded)
         {
             SaveSettings();
@@ -419,28 +449,23 @@ public partial class MainWindow : Window
         ClutchCheck.IsChecked = _settings.ShowClutch;
         TimeSpanSlider.Value = Math.Clamp(_settings.GraphTimeSpanSeconds, 5, 30);
 
-        foreach (ComboBoxItem item in ScaleCombo.Items)
+        double savedScale = SupportedScales[0];
+        double smallestDifference = double.MaxValue;
+        foreach (double supportedScale in SupportedScales)
         {
-            if (double.TryParse(item.Tag?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) &&
-                Math.Abs(value - _settings.WindowScale) < 0.001)
+            double difference = Math.Abs(supportedScale - _settings.WindowScale);
+            if (difference < smallestDifference)
             {
-                ScaleCombo.SelectedItem = item;
-                break;
+                smallestDifference = difference;
+                savedScale = supportedScale;
             }
         }
+        ApplyWindowScale(savedScale, save: false);
 
-        string savedTheme = string.Equals(_settings.Theme, "Light", StringComparison.OrdinalIgnoreCase)
-            ? "Light"
-            : "Dark";
-        foreach (ComboBoxItem item in ThemeCombo.Items)
-        {
-            if (string.Equals(item.Tag?.ToString(), savedTheme, StringComparison.OrdinalIgnoreCase))
-            {
-                ThemeCombo.SelectedItem = item;
-                break;
-            }
-        }
-        ApplyTheme(savedTheme == "Light");
+        bool useLightTheme = string.Equals(_settings.Theme, "Light", StringComparison.OrdinalIgnoreCase);
+        LightThemeRadio.IsChecked = useLightTheme;
+        DarkThemeRadio.IsChecked = !useLightTheme;
+        ApplyTheme(useLightTheme);
 
         ApplyInputSelection();
         TimeSpanValue.Text = $"{(int)TimeSpanSlider.Value} seconds";
@@ -449,20 +474,12 @@ public partial class MainWindow : Window
 
     private void SaveSettings()
     {
-        if (ScaleCombo.SelectedItem is not ComboBoxItem item ||
-            !double.TryParse(item.Tag?.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out double scale))
-        {
-            scale = 1.0;
-        }
-
         _settings.ShowThrottle = ThrottleCheck.IsChecked == true;
         _settings.ShowBrake = BrakeCheck.IsChecked == true;
         _settings.ShowClutch = ClutchCheck.IsChecked == true;
         _settings.GraphTimeSpanSeconds = (int)Math.Round(TimeSpanSlider.Value);
-        _settings.WindowScale = scale;
-        _settings.Theme = ThemeCombo.SelectedItem is ComboBoxItem themeItem
-            ? themeItem.Tag?.ToString() ?? "Dark"
-            : "Dark";
+        _settings.WindowScale = _currentScale;
+        _settings.Theme = LightThemeRadio.IsChecked == true ? "Light" : "Dark";
         _settings.Save();
     }
 
