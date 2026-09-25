@@ -4,12 +4,18 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing version tag to retry (for example, v0.0.1)'
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -20,15 +26,21 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
       - name: Validate release tag and commit
         shell: pwsh
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
         run: |
           $tag = $env:RELEASE_TAG
           if ($tag -cnotmatch '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
             throw "Release tag must have the form vX.Y.Z: $tag"
+          }
+
+          $tagCommit = git rev-parse "$tag^{commit}"
+          if ($LASTEXITCODE -ne 0 -or $tagCommit -ne (git rev-parse HEAD)) {
+            throw "Checked-out commit does not match tag $tag."
           }
 
           git fetch origin main --no-tags
@@ -70,7 +82,7 @@ jobs:
             @{ Folder = 'self-contained'; Suffix = 'self-contained' },
             @{ Folder = 'framework-dependent'; Suffix = 'framework-dependent' }
           )
-          New-Item -ItemType Directory -Path .\artifacts\release\dist | Out-Null
+          New-Item -ItemType Directory -Path .\artifacts\release\dist -Force | Out-Null
           foreach ($output in $outputs) {
             $folder = Join-Path .\artifacts\release $output.Folder
             $files = @(Get-ChildItem -LiteralPath $folder -File)
@@ -78,10 +90,10 @@ jobs:
               throw "Expected exactly one EXE in $folder; found $($files.Count) file(s)."
             }
             if ($files[0].VersionInfo.FileVersion -ne "$env:APP_VERSION.0") {
-              throw "Unexpected file version in $folder: $($files[0].VersionInfo.FileVersion)"
+              throw "Unexpected file version in ${folder}: $($files[0].VersionInfo.FileVersion)"
             }
             $name = "ACEvo-Simple-Telemetry-$($env:RELEASE_TAG)-win-x64-$($output.Suffix).exe"
-            Copy-Item -LiteralPath $files[0].FullName -Destination (Join-Path .\artifacts\release\dist $name)
+            Copy-Item -LiteralPath $files[0].FullName -Destination (Join-Path .\artifacts\release\dist $name) -Force
           }
           Get-ChildItem .\artifacts\release\dist -File | ForEach-Object {
             Write-Host "$($_.Name): $($_.Length) bytes"

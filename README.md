@@ -66,6 +66,8 @@ git push origin v0.1.0
 
 Replace `v0.1.0` with the next `vX.Y.Z` version. Pushing the tag runs the [release workflow](.github/workflows/release.yml), which validates the project, builds both Windows x64 executables, and publishes them in the matching GitHub Release. The tag supplies the version in the executable metadata and download names. GitHub Release notes serve as the changelog; edit the generated notes to add a short user-facing summary when needed.
 
+If a release workflow fails, fix and push the workflow on `main`, then open **Actions → Release → Run workflow**, select `main`, and enter the existing tag to retry it. The retry builds the original tagged source with the corrected workflow; do not move or recreate the tag.
+
 ## Telemetry implementation
 
 AC EVO 0.6 introduced its updated shared-memory output. This application opens both `Local\acevo_pmf_physics` and `Local\acevo_pmf_graphics` read-only with `MemoryMappedFile.OpenExisting`; it deliberately never creates mappings when the game is absent.
