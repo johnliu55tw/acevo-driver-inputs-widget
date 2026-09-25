@@ -56,7 +56,7 @@ public static class DebugLog
             _lastTelemetryLogTime = double.NegativeInfinity;
             _lastTelemetryPacketId = int.MinValue;
             Info("Console logging enabled. Raw telemetry snapshots are sampled at 10 Hz.");
-            Info("Graphics columns: packetId, statusRaw, absActiveRaw, gasPercentRaw, brakePercentRaw, clutchPercentRaw, gearIntRaw, steerDegreesRaw");
+            Info("Graphics columns: packetId, statusRaw, tcActiveRaw, absActiveRaw, gasPercentRaw, brakePercentRaw, clutchPercentRaw, gearIntRaw, steerDegreesRaw");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -67,6 +67,7 @@ public static class DebugLog
     public static void Telemetry(
         int packetId,
         int statusRaw,
+        bool tcActiveRaw,
         bool absActiveRaw,
         float gasRaw,
         float brakeRaw,
@@ -87,7 +88,8 @@ public static class DebugLog
             _lastTelemetryPacketId = packetId;
             string message = string.Create(
                 CultureInfo.InvariantCulture,
-                $"packetId={packetId}, statusRaw={statusRaw}, absActiveRaw={absActiveRaw}, gasPercentRaw={gasRaw:R}, brakePercentRaw={brakeRaw:R}, " +
+                $"packetId={packetId}, statusRaw={statusRaw}, tcActiveRaw={tcActiveRaw}, absActiveRaw={absActiveRaw}, " +
+                $"gasPercentRaw={gasRaw:R}, brakePercentRaw={brakeRaw:R}, " +
                 $"clutchPercentRaw={clutchRaw:R}, gearIntRaw={gearIntRaw}, steerDegreesRaw={steerDegreesRaw}");
             WriteLine("RAW", message);
         }

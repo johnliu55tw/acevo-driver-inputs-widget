@@ -110,7 +110,12 @@ public partial class MainWindow : Window
         WheelAngleText.Text = $"{degrees:+0;-0;0}°";
         SteeringWheel.AngleDegrees = degrees;
         GearText.Text = FormatGear(sample.Gear);
-        PedalGraph.AddSample(sample.Throttle, sample.Brake, sample.Clutch, sample.AbsActive);
+        PedalGraph.AddSample(
+            sample.Throttle,
+            sample.Brake,
+            sample.Clutch,
+            sample.TcActive,
+            sample.AbsActive);
     }
 
     private static string FormatGear(int rawGear) => rawGear switch
