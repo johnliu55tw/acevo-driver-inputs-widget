@@ -131,7 +131,8 @@
 
     <Border x:Name="ScaledRoot" Width="980" Height="286"
             Background="{DynamicResource OverlayBackgroundBrush}" BorderThickness="0"
-            CornerRadius="10" Padding="10" SnapsToDevicePixels="True" SizeChanged="ScaledRoot_SizeChanged">
+            CornerRadius="10" Padding="10" SnapsToDevicePixels="True" SizeChanged="ScaledRoot_SizeChanged"
+            MouseEnter="ScaledRoot_HoverChanged" MouseLeave="ScaledRoot_HoverChanged">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
@@ -139,11 +140,7 @@
             </Grid.RowDefinitions>
 
             <Grid x:Name="StatusArea" Grid.Row="0" Background="Transparent"
-                  MouseLeftButtonDown="Header_MouseLeftButtonDown">
-                <TextBlock x:Name="StatusText" Text="Waiting for session..."
-                           FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"
-                           Margin="144,0,8,0"/>
-            </Grid>
+                  MouseLeftButtonDown="Header_MouseLeftButtonDown"/>
 
             <Grid x:Name="TelemetryArea" Grid.Row="0" Background="Transparent" Visibility="Collapsed"
                   MouseLeftButtonDown="Header_MouseLeftButtonDown">
@@ -216,41 +213,31 @@
 
             </Grid>
 
-            <Border Grid.Row="0" Panel.ZIndex="10">
-                <Border.Style>
-                    <Style TargetType="Border" BasedOn="{StaticResource ControlBarStyle}">
-                        <Setter Property="Opacity" Value="0"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding Visibility, ElementName=StatusArea}" Value="Visible">
-                                <Setter Property="Opacity" Value="1"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=TelemetryArea}" Value="True">
-                                <Setter Property="Opacity" Value="1"/>
-                            </DataTrigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Opacity" Value="1"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </Border.Style>
+            <Border x:Name="ControlBar" Grid.Row="0" Panel.ZIndex="10" Style="{StaticResource ControlBarStyle}"
+                    Background="{DynamicResource OverlayBackgroundBrush}" CornerRadius="4">
                 <StackPanel Orientation="Horizontal">
-                    <Button Style="{StaticResource ControlBarButtonStyle}"
-                            Content="✕" FontSize="13" ToolTip="Close" Click="CloseButton_Click"/>
-                    <Button Style="{StaticResource ControlBarButtonStyle}"
-                            ToolTip="Settings" Click="SettingsButton_Click">
-                        <Viewbox Width="18" Height="18">
-                            <Path Width="24" Height="24" Fill="{DynamicResource PrimaryTextBrush}">
-                                <Path.Data>
-                                    <GeometryGroup FillRule="EvenOdd">
-                                        <PathGeometry Figures="M9,5 L10,5 L10,2 L14,2 L14,5 L15,5 L17,3 L21,7 L19,9 L19,10 L22,10 L22,14 L19,14 L19,15 L21,17 L17,21 L15,19 L14,19 L14,22 L10,22 L10,19 L9,19 L7,21 L3,17 L5,15 L5,14 L2,14 L2,10 L5,10 L5,9 L3,7 L7,3 Z"/>
-                                        <EllipseGeometry Center="12,12" RadiusX="3.5" RadiusY="3.5"/>
-                                    </GeometryGroup>
-                                </Path.Data>
-                            </Path>
-                        </Viewbox>
-                    </Button>
-                    <ToggleButton x:Name="PositionLockButton" Style="{StaticResource PositionLockButtonStyle}"
-                                  Click="PositionLockButton_Click"/>
+                    <StackPanel x:Name="ControlButtons" Orientation="Horizontal">
+                        <Button Style="{StaticResource ControlBarButtonStyle}"
+                                Content="✕" FontSize="13" ToolTip="Close" Click="CloseButton_Click"/>
+                        <Button Style="{StaticResource ControlBarButtonStyle}"
+                                ToolTip="Settings" Click="SettingsButton_Click">
+                            <Viewbox Width="18" Height="18">
+                                <Path Width="24" Height="24" Fill="{DynamicResource PrimaryTextBrush}">
+                                    <Path.Data>
+                                        <GeometryGroup FillRule="EvenOdd">
+                                            <PathGeometry Figures="M9,5 L10,5 L10,2 L14,2 L14,5 L15,5 L17,3 L21,7 L19,9 L19,10 L22,10 L22,14 L19,14 L19,15 L21,17 L17,21 L15,19 L14,19 L14,22 L10,22 L10,19 L9,19 L7,21 L3,17 L5,15 L5,14 L2,14 L2,10 L5,10 L5,9 L3,7 L7,3 Z"/>
+                                            <EllipseGeometry Center="12,12" RadiusX="3.5" RadiusY="3.5"/>
+                                        </GeometryGroup>
+                                    </Path.Data>
+                                </Path>
+                            </Viewbox>
+                        </Button>
+                        <ToggleButton x:Name="PositionLockButton" Style="{StaticResource PositionLockButtonStyle}"
+                                      Click="PositionLockButton_Click"/>
+                    </StackPanel>
+                    <TextBlock x:Name="StatusText" Text="Waiting for session..."
+                               FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"
+                               Margin="12,0,8,0"/>
                 </StackPanel>
             </Border>
 
@@ -270,6 +257,12 @@
                         <CheckBox x:Name="ThrottleCheck" Content="Throttle" IsChecked="True" Checked="InputSelectionChanged" Unchecked="InputSelectionChanged"/>
                         <CheckBox x:Name="BrakeCheck" Content="Brake" IsChecked="True" Checked="InputSelectionChanged" Unchecked="InputSelectionChanged"/>
                         <CheckBox x:Name="ClutchCheck" Content="Clutch" IsChecked="True" Checked="InputSelectionChanged" Unchecked="InputSelectionChanged"/>
+                        <TextBlock Text="DISPLAY" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,7,0,0"/>
+                        <CheckBox x:Name="AlwaysShowTelemetryCheck"
+                                  Content="Always show telemetry graph"
+                                  ToolTip="When unchecked, show only the status and control bar outside a live session."
+                                  Checked="AlwaysShowTelemetryCheck_Changed"
+                                  Unchecked="AlwaysShowTelemetryCheck_Changed"/>
                     </StackPanel>
                     <StackPanel Grid.Column="1">
                         <TextBlock Text="GRAPH TIME SPAN" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"/>

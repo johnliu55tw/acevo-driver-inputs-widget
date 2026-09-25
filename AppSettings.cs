@@ -14,6 +14,7 @@ public sealed class AppSettings
     public bool ShowThrottle { get; set; } = true;
     public bool ShowBrake { get; set; } = true;
     public bool ShowClutch { get; set; } = true;
+    public bool AlwaysShowTelemetryGraph { get; set; }
     public int GraphTimeSpanSeconds { get; set; } = 10;
     public bool PositionLocked { get; set; }
     public double WindowScale { get; set; } = 1.0;

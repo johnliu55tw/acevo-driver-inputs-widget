@@ -35,8 +35,11 @@ public partial class MainWindow : Window
     private double _statusLogicalHeight = LogicalStatusHeight;
     private ACEvoStatus? _displayStatus;
     private bool _isLiveDisplay;
+    private bool _isTelemetryDisplay;
     private bool _isPositionLocked;
     private HwndSource? _windowSource;
+
+    private bool IsTelemetryDisplay => _isTelemetryDisplay;
 
     public MainWindow()
     {
@@ -143,10 +146,12 @@ public partial class MainWindow : Window
         _displayStatus = status;
         StatusText.Text = status switch
         {
+            ACEvoStatus.Live => string.Empty,
             ACEvoStatus.Replay => "Replay in progress...",
             ACEvoStatus.Pause => "Paused",
             _ => "Waiting for session..."
         };
+        StatusText.Visibility = showLive ? Visibility.Collapsed : Visibility.Visible;
         Title = status switch
         {
             ACEvoStatus.Live => "AC EVO Simple Telemetry — Live",
@@ -155,7 +160,9 @@ public partial class MainWindow : Window
             _ => "AC EVO Simple Telemetry — Waiting for session"
         };
 
-        if (hadDisplayState && showLive == _isLiveDisplay)
+        bool wasTelemetryDisplay = IsTelemetryDisplay;
+        bool showTelemetry = showLive || _settings.AlwaysShowTelemetryGraph;
+        if (hadDisplayState && showLive == _isLiveDisplay && showTelemetry == wasTelemetryDisplay)
         {
             return;
         }
@@ -169,8 +176,10 @@ public partial class MainWindow : Window
         double anchorLeft = Left;
         double anchorTop = Top;
         _isLiveDisplay = showLive;
-        TelemetryArea.Visibility = showLive ? Visibility.Visible : Visibility.Collapsed;
-        StatusArea.Visibility = showLive ? Visibility.Collapsed : Visibility.Visible;
+        _isTelemetryDisplay = showTelemetry;
+        TelemetryArea.Visibility = showTelemetry ? Visibility.Visible : Visibility.Collapsed;
+        StatusArea.Visibility = showTelemetry ? Visibility.Collapsed : Visibility.Visible;
+        UpdateControlBarVisibility();
         ApplyWindowResizeState();
 
         if (showLive)
@@ -179,12 +188,12 @@ public partial class MainWindow : Window
         }
 
         UpdateMinimumSize();
-        double width = (showLive
+        double width = (showTelemetry
             ? Math.Max(LogicalMinWidth, _liveLogicalWidth)
             : SettingsPanel.Visibility == Visibility.Visible
                 ? Math.Max(LogicalSettingsMinWidth, _liveLogicalWidth)
                 : Math.Max(LogicalStatusWidth, _statusLogicalWidth)) * _currentScale;
-        double height = ((showLive ? _liveLogicalHeight : _statusLogicalHeight) + settingsHeight) * _currentScale;
+        double height = ((showTelemetry ? _liveLogicalHeight : _statusLogicalHeight) + settingsHeight) * _currentScale;
         SetSizeFromTopLeft(width, height, anchorLeft, anchorTop);
     }
 
@@ -304,7 +313,7 @@ public partial class MainWindow : Window
             SettingsPanel.Visibility = Visibility.Collapsed;
             UpdateMinimumSize();
             Height = Math.Max(MinHeight, Height - panelHeight * _currentScale);
-            if (!_isLiveDisplay)
+            if (!IsTelemetryDisplay)
             {
                 Width = Math.Max(LogicalStatusWidth, _statusLogicalWidth) * _currentScale;
             }
@@ -312,7 +321,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!_isLiveDisplay)
+        if (!IsTelemetryDisplay)
         {
             _statusLogicalWidth = Math.Max(
                 LogicalStatusWidth,
@@ -332,6 +341,15 @@ public partial class MainWindow : Window
 
     private void CloseButton_Click(object sender, RoutedEventArgs e) => Close();
 
+    private void ScaledRoot_HoverChanged(object sender, MouseEventArgs e) => UpdateControlBarVisibility();
+
+    private void UpdateControlBarVisibility()
+    {
+        ControlBar.Visibility = _isLiveDisplay && !ScaledRoot.IsMouseOver
+            ? Visibility.Hidden
+            : Visibility.Visible;
+    }
+
     private void PositionLockButton_Click(object sender, RoutedEventArgs e)
     {
         _isPositionLocked = ((ToggleButton)sender).IsChecked == true;
@@ -341,7 +359,7 @@ public partial class MainWindow : Window
 
     private void ApplyWindowResizeState()
     {
-        bool canResize = _isLiveDisplay && !_isPositionLocked;
+        bool canResize = IsTelemetryDisplay && !_isPositionLocked;
         ResizeMode = canResize ? ResizeMode.CanResize : ResizeMode.NoResize;
         if (WindowChrome.GetWindowChrome(this) is { } chrome)
         {
@@ -366,6 +384,21 @@ public partial class MainWindow : Window
 
         ApplyInputSelection();
         SaveSettings();
+    }
+
+    private void AlwaysShowTelemetryCheck_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded)
+        {
+            return;
+        }
+
+        _settings.AlwaysShowTelemetryGraph = AlwaysShowTelemetryCheck.IsChecked == true;
+        SaveSettings();
+        if (_displayStatus is ACEvoStatus status)
+        {
+            SetDisplayStatus(status);
+        }
     }
 
     private void ApplyInputSelection()
@@ -476,7 +509,7 @@ public partial class MainWindow : Window
 
     private void UpdateMinimumSize()
     {
-        double logicalMinWidth = _isLiveDisplay ? LogicalMinWidth : LogicalStatusWidth;
+        double logicalMinWidth = IsTelemetryDisplay ? LogicalMinWidth : LogicalStatusWidth;
         if (SettingsPanel?.Visibility == Visibility.Visible)
         {
             logicalMinWidth = Math.Max(logicalMinWidth, LogicalSettingsMinWidth);
@@ -484,7 +517,7 @@ public partial class MainWindow : Window
 
         MinWidth = logicalMinWidth * _currentScale;
         double settingsHeight = GetVisibleSettingsHeight();
-        double contentHeight = _isLiveDisplay ? LogicalMinTelemetryHeight : LogicalStatusHeight;
+        double contentHeight = IsTelemetryDisplay ? LogicalMinTelemetryHeight : LogicalStatusHeight;
         MinHeight = (contentHeight + settingsHeight) * _currentScale;
     }
 
@@ -564,6 +597,7 @@ public partial class MainWindow : Window
         ThrottleCheck.IsChecked = _settings.ShowThrottle;
         BrakeCheck.IsChecked = _settings.ShowBrake;
         ClutchCheck.IsChecked = _settings.ShowClutch;
+        AlwaysShowTelemetryCheck.IsChecked = _settings.AlwaysShowTelemetryGraph;
         TimeSpanSlider.Value = Math.Clamp(_settings.GraphTimeSpanSeconds, 5, 30);
 
         double savedScale = SupportedScales[0];
@@ -643,7 +677,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (_isLiveDisplay)
+        if (IsTelemetryDisplay)
         {
             _liveLogicalWidth = Math.Max(LogicalMinWidth, width);
             _liveLogicalHeight = Math.Max(LogicalMinTelemetryHeight, height);
@@ -664,6 +698,7 @@ public partial class MainWindow : Window
         _settings.ShowThrottle = ThrottleCheck.IsChecked == true;
         _settings.ShowBrake = BrakeCheck.IsChecked == true;
         _settings.ShowClutch = ClutchCheck.IsChecked == true;
+        _settings.AlwaysShowTelemetryGraph = AlwaysShowTelemetryCheck.IsChecked == true;
         _settings.GraphTimeSpanSeconds = (int)Math.Round(TimeSpanSlider.Value);
         _settings.PositionLocked = _isPositionLocked;
         _settings.WindowScale = _currentScale;
