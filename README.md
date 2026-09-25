@@ -1,15 +1,23 @@
-# AC EVO Simple Telemetry
+# Assetto Corsa EVO Simple Driver Inputs Widget
 
-A small, always-on-top WPF overlay for **Assetto Corsa EVO**. It shows:
+A small, always-on-top WPF overlay for **Assetto Corsa EVO** showing driver inputs. It shows:
 
-- steering-wheel rotation and angle;
-- current gear;
-- vertical throttle, brake, and clutch gauges;
-- a scrolling graph for the same three pedal inputs, with the throttle trace turning purple while TC is active and the brake trace turning yellow while ABS is active.
+- Steering-wheel rotation and angle
+- Current gear
+- Vertical throttle, brake, and clutch gauges;
+- A scrolling graph for the same three pedal inputs, with the throttle trace turning **purple** while TC is active and the brake trace turning **yellow** while ABS is active.
 
-The settings panel lets you independently show or hide each pedal input, choose a graph history from 5–30 seconds, scale the complete overlay from 50–250%, and switch between dark and light themes. Preferences are saved automatically.
+The settings panel lets you configure:
 
-The complete telemetry layout is shown only during a driving session. At other times the overlay collapses to a single status row for waiting, replay, or pause state, with settings and close controls available on hover.
+- Which pedal inputs are shown
+- Graph history from 5–30 seconds
+- Always show telemetry graph: keep the telemetry layout visible outside a driving session (unchecked by default)
+- Complete overlay scale from 50–250%
+- Dark or light theme
+
+The control bar also has a lock button that prevents dragging and edge resizing. Preferences, the lock state, window position, and the separate telemetry and compact window sizes are saved automatically.
+
+During a Live session, the telemetry layout is shown without a status message. The entire control bar appears only while the pointer is over the overlay. Outside a Live session, the control bar stays visible with a waiting, replay, or pause message. The telemetry layout remains visible if **Always show telemetry graph** is checked; otherwise, the overlay collapses to the compact status and control bar.
 
 ## Run
 
@@ -23,7 +31,7 @@ Start Assetto Corsa EVO and enter a driving session. There is no in-game telemet
 
 Use **Borderless Fullscreen** or **Windowed** display mode in AC EVO. The overlay reasserts its native topmost position when the game takes focus, but Windows cannot composite a normal WPF window over a true exclusive-fullscreen DirectX surface.
 
-Hover the overlay to reveal the settings and close buttons. Drag the telemetry surface to move it, or drag any edge/corner to resize it. The borderless surface keeps rounded corners at every size.
+During a Live session, hover over the overlay to reveal the control bar. Drag the overlay to move it, or drag any edge/corner of the telemetry layout to resize it when the position lock is off. The borderless surface keeps rounded corners at every size.
 
 To print raw telemetry to a console, start the executable with `--console-log`:
 
@@ -64,6 +72,6 @@ The reader checks each block's packet id before and after its own snapshot. If e
 
 - [Kunos/505 Games shared-memory documentation on Steam](https://steamcommunity.com/sharedfiles/filedetails/?id=3707421508) — canonical mapping names and data layout.
 - [Assetto Corsa EVO 0.6 announcement](https://assettocorsa.gg/assetto-corsa-evo-early-access-06-now-available/) — confirms the updated shared-memory library and official telemetry support.
-- [Community field-by-field transcription and validation](https://github.com/albertowd/live-telemetry-evo/blob/develop/docs/SHARED_MEMORY.md) — offsets, units, packing, and concurrency notes cross-checked against the official guide.
+- [Community field-by-field transcription and validation](https://github.com/albertowd/live-telemetry-evo/blob/develop/docs/SHARED_MEMORY.md) by [albertowd](https://github.com/albertowd) — the source for the detailed telemetry offsets, units, packing, and concurrency notes used here, cross-checked against the official guide.
 
 AC EVO is still evolving, so a future shared-memory version may require updating the documented offsets.
