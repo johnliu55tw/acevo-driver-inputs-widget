@@ -18,7 +18,7 @@ public partial class MainWindow : Window
     private const double LogicalSettingsMinWidth = 820;
     private const double CornerRadius = 10;
     private static readonly bool NativeTopmostEnforcementEnabled = true;
-    private static readonly double[] SupportedScales = [0.5, 0.6, 0.75, 1.0, 1.25, 1.5, 2.0];
+    private static readonly double[] SupportedScales = [0.5, 0.6, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5];
 
     private readonly ACEvoTelemetryReader _reader = new();
     private readonly DispatcherTimer _timer;
@@ -30,6 +30,7 @@ public partial class MainWindow : Window
     private double _liveLogicalWidth = 980;
     private double _liveLogicalHeight = 286;
     private double _statusLogicalWidth = LogicalStatusWidth;
+    private double _statusLogicalHeight = LogicalStatusHeight;
     private ACEvoStatus? _displayStatus;
     private bool _isLiveDisplay;
     private HwndSource? _windowSource;
@@ -41,7 +42,9 @@ public partial class MainWindow : Window
         DebugLog.Info("AC EVO Simple Telemetry started.");
         _settings = AppSettings.Load();
         ApplySavedSettings();
+        RestoreWindowSizes();
         SetDisplayStatus(ACEvoStatus.Off);
+        RestoreWindowPosition();
 
         _timer = new DispatcherTimer(DispatcherPriority.Render)
         {
@@ -51,6 +54,7 @@ public partial class MainWindow : Window
         _timer.Start();
 
         SourceInitialized += Window_SourceInitialized;
+        Closing += (_, _) => SaveSettings();
         if (NativeTopmostEnforcementEnabled)
         {
             Activated += (_, _) => EnsureTopmost();
@@ -154,17 +158,9 @@ public partial class MainWindow : Window
         }
 
         double settingsHeight = GetVisibleSettingsHeight();
-        double logicalWidth = (ActualWidth > 0 ? ActualWidth : Width) / _currentScale;
-        double logicalHeight = (ActualHeight > 0 ? ActualHeight : Height) / _currentScale;
-
-        if (hadDisplayState && _isLiveDisplay)
+        if (hadDisplayState)
         {
-            _liveLogicalWidth = Math.Max(LogicalMinWidth, logicalWidth);
-            _liveLogicalHeight = Math.Max(LogicalMinTelemetryHeight, logicalHeight - settingsHeight);
-        }
-        else if (hadDisplayState && SettingsPanel.Visibility != Visibility.Visible)
-        {
-            _statusLogicalWidth = Math.Max(LogicalStatusWidth, logicalWidth);
+            RememberCurrentDisplaySize();
         }
 
         _isLiveDisplay = showLive;
@@ -182,7 +178,7 @@ public partial class MainWindow : Window
             : SettingsPanel.Visibility == Visibility.Visible
                 ? Math.Max(LogicalSettingsMinWidth, _liveLogicalWidth)
                 : Math.Max(LogicalStatusWidth, _statusLogicalWidth)) * _currentScale;
-        Height = ((showLive ? _liveLogicalHeight : LogicalStatusHeight) + settingsHeight) * _currentScale;
+        Height = ((showLive ? _liveLogicalHeight : _statusLogicalHeight) + settingsHeight) * _currentScale;
         SyncScaledRootSize();
     }
 
@@ -278,6 +274,7 @@ public partial class MainWindow : Window
 
     private void SettingsButton_Click(object sender, RoutedEventArgs e)
     {
+        RememberCurrentDisplaySize();
         if (SettingsPanel.Visibility == Visibility.Visible)
         {
             double panelHeight = _settingsPanelLogicalHeight > 0
@@ -547,13 +544,92 @@ public partial class MainWindow : Window
         PedalGraph.TimeSpanSeconds = TimeSpanSlider.Value;
     }
 
+    private void RestoreWindowPosition()
+    {
+        if (_settings.WindowLeft is not double savedLeft ||
+            _settings.WindowTop is not double savedTop ||
+            !double.IsFinite(savedLeft) || !double.IsFinite(savedTop))
+        {
+            return;
+        }
+
+        // Keep enough of the overlay visible to drag it back after a display change.
+        const double visibleWidth = 64;
+        const double visibleHeight = 32;
+        double screenLeft = SystemParameters.VirtualScreenLeft;
+        double screenTop = SystemParameters.VirtualScreenTop;
+        double screenRight = screenLeft + SystemParameters.VirtualScreenWidth;
+        double screenBottom = screenTop + SystemParameters.VirtualScreenHeight;
+        if (!double.IsFinite(screenLeft) || !double.IsFinite(screenTop) ||
+            !double.IsFinite(screenRight) || !double.IsFinite(screenBottom))
+        {
+            return;
+        }
+
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        Left = Math.Clamp(savedLeft, screenLeft - Width + visibleWidth, screenRight - visibleWidth);
+        Top = Math.Clamp(savedTop, screenTop, screenBottom - visibleHeight);
+    }
+
+    private void RestoreWindowSizes()
+    {
+        _liveLogicalWidth = RestoredSize(_settings.LiveWindowWidth, _liveLogicalWidth, LogicalMinWidth);
+        _liveLogicalHeight = RestoredSize(_settings.LiveWindowHeight, _liveLogicalHeight, LogicalMinTelemetryHeight);
+        _statusLogicalWidth = RestoredSize(_settings.StatusWindowWidth, _statusLogicalWidth, LogicalStatusWidth);
+        _statusLogicalHeight = RestoredSize(_settings.StatusWindowHeight, _statusLogicalHeight, LogicalStatusHeight);
+    }
+
+    private static double RestoredSize(double? saved, double fallback, double minimum) =>
+        saved is double value && double.IsFinite(value) && value >= minimum && value <= 10000
+            ? value
+            : fallback;
+
+    private void RememberCurrentDisplaySize()
+    {
+        if (!IsLoaded || _currentScale <= 0)
+        {
+            return;
+        }
+
+        double width = (double.IsFinite(Width) && Width > 0 ? Width : ActualWidth) / _currentScale;
+        double height = (double.IsFinite(Height) && Height > 0 ? Height : ActualHeight) / _currentScale - GetVisibleSettingsHeight();
+        if (!double.IsFinite(width) || !double.IsFinite(height))
+        {
+            return;
+        }
+
+        if (_isLiveDisplay)
+        {
+            _liveLogicalWidth = Math.Max(LogicalMinWidth, width);
+            _liveLogicalHeight = Math.Max(LogicalMinTelemetryHeight, height);
+        }
+        else
+        {
+            if (SettingsPanel.Visibility != Visibility.Visible)
+            {
+                _statusLogicalWidth = Math.Max(LogicalStatusWidth, width);
+            }
+            _statusLogicalHeight = Math.Max(LogicalStatusHeight, height);
+        }
+    }
+
     private void SaveSettings()
     {
+        RememberCurrentDisplaySize();
         _settings.ShowThrottle = ThrottleCheck.IsChecked == true;
         _settings.ShowBrake = BrakeCheck.IsChecked == true;
         _settings.ShowClutch = ClutchCheck.IsChecked == true;
         _settings.GraphTimeSpanSeconds = (int)Math.Round(TimeSpanSlider.Value);
         _settings.WindowScale = _currentScale;
+        _settings.LiveWindowWidth = _liveLogicalWidth;
+        _settings.LiveWindowHeight = _liveLogicalHeight;
+        _settings.StatusWindowWidth = _statusLogicalWidth;
+        _settings.StatusWindowHeight = _statusLogicalHeight;
+        if (double.IsFinite(Left) && double.IsFinite(Top))
+        {
+            _settings.WindowLeft = Left;
+            _settings.WindowTop = Top;
+        }
         _settings.Theme = LightThemeRadio.IsChecked == true ? "Light" : "Dark";
         _settings.Save();
     }

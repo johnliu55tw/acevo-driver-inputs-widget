@@ -7,9 +7,9 @@ A small, always-on-top WPF overlay for **Assetto Corsa EVO**. It shows:
 - vertical throttle, brake, and clutch gauges;
 - a scrolling graph for the same three pedal inputs, with the throttle trace turning purple while TC is active and the brake trace turning yellow while ABS is active.
 
-The settings panel lets you independently show or hide each pedal input, choose a graph history from 5–30 seconds, scale the complete overlay from 75–200%, and switch between dark and light themes. Preferences are saved automatically.
+The settings panel lets you independently show or hide each pedal input, choose a graph history from 5–30 seconds, scale the complete overlay from 50–250%, and switch between dark and light themes. Preferences are saved automatically.
 
-The complete telemetry layout is shown only during an `AC_LIVE` driving session. At other times the overlay collapses to a single status row for waiting, replay, or pause state, with settings and close controls available on hover.
+The complete telemetry layout is shown only during a driving session. At other times the overlay collapses to a single status row for waiting, replay, or pause state, with settings and close controls available on hover.
 
 ## Run
 

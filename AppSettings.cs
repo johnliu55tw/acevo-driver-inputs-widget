@@ -16,6 +16,12 @@ public sealed class AppSettings
     public bool ShowClutch { get; set; } = true;
     public int GraphTimeSpanSeconds { get; set; } = 10;
     public double WindowScale { get; set; } = 1.0;
+    public double? WindowLeft { get; set; }
+    public double? WindowTop { get; set; }
+    public double? LiveWindowWidth { get; set; }
+    public double? LiveWindowHeight { get; set; }
+    public double? StatusWindowWidth { get; set; }
+    public double? StatusWindowHeight { get; set; }
     public string Theme { get; set; } = "Dark";
 
     public static AppSettings Load()
