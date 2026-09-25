@@ -11,6 +11,12 @@ namespace ACEvo_Simple_Telemetry;
 
 public partial class MainWindow : Window
 {
+    private enum DisplayState
+    {
+        GameNotRunning,
+        GameStatus
+    }
+
     private const double LogicalMinWidth = 560;
     private const double LogicalMinTelemetryHeight = 180;
     private const double LogicalStatusWidth = 360;
@@ -30,8 +36,11 @@ public partial class MainWindow : Window
     private double _liveLogicalWidth = 980;
     private double _liveLogicalHeight = 286;
     private double _statusLogicalWidth = LogicalStatusWidth;
+    private DisplayState _displayState;
     private ACEvoStatus? _displayStatus;
+    private bool _hasDisplayState;
     private bool _isLiveDisplay;
+    private HwndSource? _windowSource;
 
     public MainWindow()
     {
@@ -40,7 +49,7 @@ public partial class MainWindow : Window
         DebugLog.Info("AC EVO Simple Telemetry started.");
         _settings = AppSettings.Load();
         ApplySavedSettings();
-        SetDisplayStatus(ACEvoStatus.Off);
+        SetDisplayStatus(null);
 
         _timer = new DispatcherTimer(DispatcherPriority.Render)
         {
@@ -49,9 +58,9 @@ public partial class MainWindow : Window
         _timer.Tick += Timer_Tick;
         _timer.Start();
 
+        SourceInitialized += Window_SourceInitialized;
         if (NativeTopmostEnforcementEnabled)
         {
-            SourceInitialized += (_, _) => EnsureTopmost();
             Activated += (_, _) => EnsureTopmost();
             Deactivated += (_, _) => EnsureTopmost();
         }
@@ -60,6 +69,7 @@ public partial class MainWindow : Window
         {
             _timer.Stop();
             _reader.Dispose();
+            _windowSource?.RemoveHook(WindowMessageHook);
             DebugLog.Shutdown();
         };
     }
@@ -82,7 +92,7 @@ public partial class MainWindow : Window
         {
             if (!_reader.IsConnected)
             {
-                SetDisplayStatus(ACEvoStatus.Off);
+                SetDisplayStatus(null);
             }
             return;
         }
@@ -126,27 +136,33 @@ public partial class MainWindow : Window
         _ => "–"
     };
 
-    private void SetDisplayStatus(ACEvoStatus status)
+    private void SetDisplayStatus(ACEvoStatus? status)
     {
-        bool hadDisplayState = _displayStatus.HasValue;
+        DisplayState displayState = status.HasValue ? DisplayState.GameStatus : DisplayState.GameNotRunning;
+        bool hadDisplayState = _hasDisplayState;
+        bool stateChanged = !hadDisplayState || _displayState != displayState;
         bool showLive = status == ACEvoStatus.Live;
 
+        _displayState = displayState;
         _displayStatus = status;
+        _hasDisplayState = true;
         StatusText.Text = status switch
         {
+            null => "Waiting for game to start...",
             ACEvoStatus.Replay => "Replay in progress...",
             ACEvoStatus.Pause => "Paused",
             _ => "Waiting for session to start..."
         };
         Title = status switch
         {
+            null => "AC EVO Simple Telemetry — Waiting for game to start",
             ACEvoStatus.Live => "AC EVO Simple Telemetry — Live",
             ACEvoStatus.Replay => "AC EVO Simple Telemetry — Replay",
             ACEvoStatus.Pause => "AC EVO Simple Telemetry — Paused",
             _ => "AC EVO Simple Telemetry — Waiting for session"
         };
 
-        if (hadDisplayState && showLive == _isLiveDisplay)
+        if (!stateChanged && showLive == _isLiveDisplay)
         {
             return;
         }
@@ -187,6 +203,74 @@ public partial class MainWindow : Window
     private double GetVisibleSettingsHeight() => SettingsPanel.Visibility == Visibility.Visible
         ? (_settingsPanelLogicalHeight > 0 ? _settingsPanelLogicalHeight : SettingsPanel.ActualHeight)
         : 0;
+
+    private void Window_SourceInitialized(object? sender, EventArgs e)
+    {
+        nint handle = new WindowInteropHelper(this).Handle;
+        ApplyNoActivateStyle(handle);
+
+        _windowSource = HwndSource.FromHwnd(handle);
+        _windowSource?.AddHook(WindowMessageHook);
+
+        if (NativeTopmostEnforcementEnabled)
+        {
+            EnsureTopmost();
+        }
+    }
+
+    private static void ApplyNoActivateStyle(nint handle)
+    {
+        Marshal.SetLastPInvokeError(0);
+        nint currentStyle = GetWindowLongPtrCompat(handle, GwlExStyle);
+        int error = Marshal.GetLastPInvokeError();
+        if (currentStyle == nint.Zero && error != 0)
+        {
+            DebugLog.Warning($"Unable to read extended window styles (Win32 error {error}).");
+            return;
+        }
+
+        nint updatedStyle = currentStyle | WsExNoActivate;
+        if (updatedStyle == currentStyle)
+        {
+            return;
+        }
+
+        Marshal.SetLastPInvokeError(0);
+        nint previousStyle = SetWindowLongPtrCompat(handle, GwlExStyle, updatedStyle);
+        error = Marshal.GetLastPInvokeError();
+        if (previousStyle == nint.Zero && error != 0)
+        {
+            DebugLog.Warning($"Unable to apply WS_EX_NOACTIVATE (Win32 error {error}).");
+            return;
+        }
+
+        SetWindowPos(
+            handle,
+            nint.Zero,
+            0,
+            0,
+            0,
+            0,
+            SwpNoMove | SwpNoSize | SwpNoZOrder | SwpNoActivate | SwpFrameChanged);
+        DebugLog.Info("Applied WS_EX_NOACTIVATE to the overlay window.");
+    }
+
+    private static nint WindowMessageHook(
+        nint hwnd,
+        int message,
+        nint wParam,
+        nint lParam,
+        ref bool handled)
+    {
+        if (message == WmMouseActivate)
+        {
+            // Keep the game active while allowing the click to reach the WPF control.
+            handled = true;
+            return MaNoActivate;
+        }
+
+        return nint.Zero;
+    }
 
     private void EnsureTopmost()
     {
@@ -489,10 +573,39 @@ public partial class MainWindow : Window
     }
 
     private static readonly nint HwndTopmost = new(-1);
+    private static readonly nint WsExNoActivate = new(0x08000000);
+    private static readonly nint MaNoActivate = new(3);
+    private const int GwlExStyle = -20;
+    private const int WmMouseActivate = 0x0021;
     private const uint SwpNoSize = 0x0001;
     private const uint SwpNoMove = 0x0002;
+    private const uint SwpNoZOrder = 0x0004;
     private const uint SwpNoActivate = 0x0010;
+    private const uint SwpFrameChanged = 0x0020;
     private const uint SwpNoOwnerZOrder = 0x0200;
+
+    private static nint GetWindowLongPtrCompat(nint hWnd, int index) =>
+        Environment.Is64BitProcess
+            ? GetWindowLongPtr64(hWnd, index)
+            : new nint(GetWindowLong32(hWnd, index));
+
+    private static nint SetWindowLongPtrCompat(nint hWnd, int index, nint value) =>
+        Environment.Is64BitProcess
+            ? SetWindowLongPtr64(hWnd, index, value)
+            : new nint(SetWindowLong32(hWnd, index, value.ToInt32()));
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongW", SetLastError = true)]
+    private static extern int GetWindowLong32(nint hWnd, int index);
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
+    private static extern nint GetWindowLongPtr64(nint hWnd, int index);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongW", SetLastError = true)]
+    private static extern int SetWindowLong32(nint hWnd, int index, int value);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
+    private static extern nint SetWindowLongPtr64(nint hWnd, int index, nint value);
+
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetWindowPos(
