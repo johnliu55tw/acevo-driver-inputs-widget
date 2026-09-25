@@ -1,0 +1,196 @@
+<Window x:Class="ACEvo_Simple_Telemetry.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ACEvo_Simple_Telemetry"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="AC EVO Simple Telemetry" WindowStyle="None" AllowsTransparency="True"
+        Background="Transparent" ResizeMode="CanResize" SizeToContent="Manual"
+        Width="980" Height="286" MinWidth="560" MinHeight="180"
+        ShowInTaskbar="True" Topmost="True" SizeChanged="Window_SizeChanged">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="7"
+                            GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
+    <Window.Resources>
+        <SolidColorBrush x:Key="PrimaryTextBrush" Color="#F4F4F4"/>
+        <SolidColorBrush x:Key="SecondaryTextBrush" Color="#85858C"/>
+        <SolidColorBrush x:Key="MutedTextBrush" Color="#77777E"/>
+        <SolidColorBrush x:Key="OverlayBackgroundBrush" Color="#EC0A0A0C"/>
+        <SolidColorBrush x:Key="SettingsBackgroundBrush" Color="#18181C"/>
+        <SolidColorBrush x:Key="PanelBackgroundBrush" Color="Transparent"/>
+        <SolidColorBrush x:Key="GaugeTrackBrush" Color="Transparent"/>
+        <SolidColorBrush x:Key="ControlBorderBrush" Color="#34343A"/>
+        <SolidColorBrush x:Key="HoverControlsBrush" Color="#B8151518"/>
+        <SolidColorBrush x:Key="GraphBackgroundBrush" Color="Transparent"/>
+        <SolidColorBrush x:Key="GraphGridBrush" Color="#465A5A60"/>
+        <SolidColorBrush x:Key="WheelBackgroundBrush" Color="Transparent"/>
+        <SolidColorBrush x:Key="WheelRimBrush" Color="#E1E1E4"/>
+        <SolidColorBrush x:Key="WheelSpokeBrush" Color="#B6B6BC"/>
+        <SolidColorBrush x:Key="WheelHubBrush" Color="#2D2D32"/>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+            <Setter Property="Margin" Value="0,5"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="7,3"/>
+        </Style>
+    </Window.Resources>
+
+    <Border x:Name="ScaledRoot" Width="980" Height="286"
+            Background="{DynamicResource OverlayBackgroundBrush}" BorderThickness="0"
+            CornerRadius="10" Padding="10" SnapsToDevicePixels="True" SizeChanged="ScaledRoot_SizeChanged">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Grid x:Name="TelemetryArea" Grid.Row="0" Background="Transparent"
+                  MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="95"/>
+                    <ColumnDefinition Width="150"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="3" Margin="8,0,0,0" Background="Transparent"
+                        BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" CornerRadius="5">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <local:SteeringWheelControl x:Name="SteeringWheel" Width="132" Height="132"
+                                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,5">
+                            <TextBlock x:Name="WheelAngleText" Text="0°" FontSize="21" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="0" Margin="0,0,8,0" Background="Transparent"
+                        BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" CornerRadius="5">
+                    <local:PedalGraphControl x:Name="PedalGraph"/>
+                </Border>
+
+                <Grid Grid.Column="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid x:Name="ThrottleGauge" Grid.Column="0" Width="36">
+                        <ProgressBar x:Name="ThrottleBar" Orientation="Vertical" Minimum="0" Maximum="100"
+                                     Width="30" Foreground="#2ED06E" Background="{DynamicResource GaugeTrackBrush}"
+                                     BorderBrush="{DynamicResource ControlBorderBrush}"
+                                     VerticalAlignment="Stretch"/>
+                        <TextBlock x:Name="ThrottleValue" Text="0" FontSize="16" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="1"/>
+                    </Grid>
+                    <Grid x:Name="BrakeGauge" Grid.Column="1" Width="36">
+                        <ProgressBar x:Name="BrakeBar" Orientation="Vertical" Minimum="0" Maximum="100"
+                                     Width="30" Foreground="#FF4B55" Background="{DynamicResource GaugeTrackBrush}"
+                                     BorderBrush="{DynamicResource ControlBorderBrush}"
+                                     VerticalAlignment="Stretch"/>
+                        <TextBlock x:Name="BrakeValue" Text="0" FontSize="16" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="1"/>
+                    </Grid>
+                    <Grid x:Name="ClutchGauge" Grid.Column="2" Width="36">
+                        <ProgressBar x:Name="ClutchBar" Orientation="Vertical" Minimum="0" Maximum="100"
+                                     Width="30" Foreground="#4CA6FF" Background="{DynamicResource GaugeTrackBrush}"
+                                     BorderBrush="{DynamicResource ControlBorderBrush}"
+                                     VerticalAlignment="Stretch"/>
+                        <TextBlock x:Name="ClutchValue" Text="0" FontSize="16" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Panel.ZIndex="1"/>
+                    </Grid>
+                </Grid>
+
+                <Border Grid.Column="2" Margin="8,0,0,0" Background="Transparent"
+                        BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" CornerRadius="5">
+                    <TextBlock x:Name="GearText" Text="N" FontSize="70" FontWeight="Bold"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" LineHeight="78"/>
+                </Border>
+
+                <Border Grid.ColumnSpan="4" HorizontalAlignment="Right" VerticalAlignment="Top"
+                        Margin="0,8,8,0" Background="{DynamicResource HoverControlsBrush}" CornerRadius="4" Panel.ZIndex="10">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Opacity" Value="0"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsMouseOver, ElementName=TelemetryArea}" Value="True">
+                                    <Setter Property="Opacity" Value="1"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="⚙" FontSize="17" ToolTip="Settings" Click="SettingsButton_Click"/>
+                        <Button Content="✕" FontSize="13" ToolTip="Close" Click="CloseButton_Click"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <Border x:Name="SettingsPanel" Grid.Row="1" Background="{DynamicResource SettingsBackgroundBrush}"
+                    BorderBrush="{DynamicResource ControlBorderBrush}"
+                    BorderThickness="0,1,0,0" CornerRadius="0,0,10,10"
+                    Padding="18,12,18,15" Visibility="Collapsed">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="220"/>
+                        <ColumnDefinition Width="250"/>
+                        <ColumnDefinition Width="290"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="SHOW INPUTS" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}" Margin="0,0,0,3"/>
+                        <CheckBox x:Name="ThrottleCheck" Content="Throttle" IsChecked="True" Checked="InputSelectionChanged" Unchecked="InputSelectionChanged"/>
+                        <CheckBox x:Name="BrakeCheck" Content="Brake" IsChecked="True" Checked="InputSelectionChanged" Unchecked="InputSelectionChanged"/>
+                        <CheckBox x:Name="ClutchCheck" Content="Clutch" IsChecked="True" Checked="InputSelectionChanged" Unchecked="InputSelectionChanged"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="GRAPH TIME SPAN" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                        <TextBlock x:Name="TimeSpanValue" Text="10 seconds" FontSize="15" Margin="0,7,0,2"/>
+                        <Slider x:Name="TimeSpanSlider" Minimum="5" Maximum="30" Value="10" TickFrequency="1"
+                                IsSnapToTickEnabled="True" ValueChanged="TimeSpanSlider_ValueChanged"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="25,0,0,0">
+                        <StackPanel>
+                            <TextBlock Text="WINDOW SCALE" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                            <ComboBox x:Name="ScaleCombo" SelectedIndex="1" Width="110" HorizontalAlignment="Left"
+                                      Margin="0,8,0,0" SelectionChanged="ScaleCombo_SelectionChanged">
+                                <ComboBoxItem Tag="0.75">75%</ComboBoxItem>
+                                <ComboBoxItem Tag="1">100%</ComboBoxItem>
+                                <ComboBoxItem Tag="1.25">125%</ComboBoxItem>
+                                <ComboBoxItem Tag="1.5">150%</ComboBoxItem>
+                                <ComboBoxItem Tag="2">200%</ComboBoxItem>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Margin="15,0,0,0">
+                            <TextBlock Text="THEME" FontSize="10" Foreground="{DynamicResource SecondaryTextBrush}"/>
+                            <ComboBox x:Name="ThemeCombo" SelectedIndex="0" Width="105" HorizontalAlignment="Left"
+                                      Margin="0,8,0,0" SelectionChanged="ThemeCombo_SelectionChanged">
+                                <ComboBoxItem Tag="Dark">Dark</ComboBoxItem>
+                                <ComboBoxItem Tag="Light">Light</ComboBoxItem>
+                            </ComboBox>
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBlock Grid.Column="3"
+                               Text="Settings are saved automatically. Start with --console-log for raw telemetry output."
+                               Foreground="{DynamicResource MutedTextBrush}" FontSize="11"
+                               TextWrapping="Wrap" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>
