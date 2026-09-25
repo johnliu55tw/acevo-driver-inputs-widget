@@ -6,7 +6,7 @@
         Title="AC EVO Simple Telemetry" WindowStyle="None" AllowsTransparency="True"
         Background="Transparent" ResizeMode="CanResize" SizeToContent="Manual"
         Width="980" Height="286" MinWidth="560" MinHeight="180"
-        ShowInTaskbar="True" Topmost="True" SizeChanged="Window_SizeChanged">
+        ShowInTaskbar="False" Topmost="True" SizeChanged="Window_SizeChanged" ShowActivated="False">
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="7"
                             GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
