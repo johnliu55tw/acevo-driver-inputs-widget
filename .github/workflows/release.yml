@@ -35,12 +35,12 @@ jobs:
         run: |
           $tag = $env:RELEASE_TAG
           if ($tag -cnotmatch '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') {
-            throw "Release tag must have the form vX.Y.Z: $tag"
+            throw "Release tag must have the form vX.Y.Z: ${tag}"
           }
 
-          $tagCommit = git rev-parse "$tag^{commit}"
+          $tagCommit = git rev-parse "${tag}^{commit}"
           if ($LASTEXITCODE -ne 0 -or $tagCommit -ne (git rev-parse HEAD)) {
-            throw "Checked-out commit does not match tag $tag."
+            throw "Checked-out commit does not match tag ${tag}."
           }
 
           git fetch origin main --no-tags
@@ -48,8 +48,8 @@ jobs:
           git merge-base --is-ancestor HEAD origin/main
           if ($LASTEXITCODE -ne 0) { throw 'The release tag must point to a commit on main.' }
 
-          "APP_VERSION=$($tag.Substring(1))" >> $env:GITHUB_ENV
-          "RELEASE_TAG=$tag" >> $env:GITHUB_ENV
+          "APP_VERSION=$(${tag}.Substring(1))" >> $env:GITHUB_ENV
+          "RELEASE_TAG=${tag}" >> $env:GITHUB_ENV
 
       - name: Set up .NET 10
         uses: actions/setup-dotnet@v6
@@ -87,9 +87,9 @@ jobs:
             $folder = Join-Path .\artifacts\release $output.Folder
             $files = @(Get-ChildItem -LiteralPath $folder -File)
             if ($files.Count -ne 1 -or $files[0].Name -ne 'ACEvo-Simple-Telemetry.exe') {
-              throw "Expected exactly one EXE in $folder; found $($files.Count) file(s)."
+              throw "Expected exactly one EXE in ${folder}; found $($files.Count) file(s)."
             }
-            if ($files[0].VersionInfo.FileVersion -ne "$env:APP_VERSION.0") {
+            if ($files[0].VersionInfo.FileVersion -ne "${env:APP_VERSION}.0") {
               throw "Unexpected file version in ${folder}: $($files[0].VersionInfo.FileVersion)"
             }
             $name = "ACEvo-Simple-Telemetry-$($env:RELEASE_TAG)-win-x64-$($output.Suffix).exe"
