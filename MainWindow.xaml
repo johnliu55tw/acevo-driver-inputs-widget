@@ -20,7 +20,7 @@
         <SolidColorBrush x:Key="PanelBackgroundBrush" Color="Transparent"/>
         <SolidColorBrush x:Key="GaugeTrackBrush" Color="Transparent"/>
         <SolidColorBrush x:Key="ControlBorderBrush" Color="#34343A"/>
-        <SolidColorBrush x:Key="HoverControlsBrush" Color="#B8151518"/>
+        <SolidColorBrush x:Key="ControlHoverBrush" Color="#29292E"/>
         <SolidColorBrush x:Key="GraphBackgroundBrush" Color="Transparent"/>
         <SolidColorBrush x:Key="GraphGridBrush" Color="#465A5A60"/>
         <SolidColorBrush x:Key="WheelBackgroundBrush" Color="Transparent"/>
@@ -43,8 +43,40 @@
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Padding" Value="7,3"/>
         </Style>
+        <Style x:Key="ControlBarButtonStyle" TargetType="Button"
+               BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="26"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBackground" Background="{TemplateBinding Background}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBackground" Property="Background"
+                                        Value="{DynamicResource ControlHoverBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ControlBarStyle" TargetType="Border">
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="Margin" Value="8,8,0,0"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
         <Style x:Key="PositionLockButtonStyle" TargetType="ToggleButton">
             <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="26"/>
             <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="ToolTip" Value="Lock dragging and edge resizing"/>
@@ -52,11 +84,11 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
-                        <Border Background="Transparent" Padding="7,3">
+                        <Border x:Name="LockBackground" Background="Transparent" CornerRadius="4" Padding="7,3">
                             <Grid Width="18" Height="20">
-                                <Path x:Name="Shackle" Data="M5,9 L5,5 C5,0 13,0 13,5 L13,6"
+                                <Path x:Name="Shackle" Data="M5,9 L5,5 C5,0 13,0 13,4.5"
                                       Stroke="{TemplateBinding Foreground}" StrokeThickness="1.6"/>
-                                <Rectangle Margin="2,8,2,2" RadiusX="1" RadiusY="1"
+                                <Rectangle x:Name="LockBody" Margin="2,8,2,2" RadiusX="1" RadiusY="1"
                                            Stroke="{TemplateBinding Foreground}" StrokeThickness="1.6"/>
                                 <Ellipse Width="2" Height="2" Margin="0,5,0,0"
                                          Fill="{TemplateBinding Foreground}"/>
@@ -65,16 +97,24 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="Shackle" Property="Data" Value="M5,9 L5,5 C5,0 13,0 13,5 L13,9"/>
+                                <Setter TargetName="Shackle" Property="StrokeThickness" Value="2.5"/>
+                                <Setter TargetName="LockBody" Property="StrokeThickness" Value="2.5"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="LockBackground" Property="Background"
+                                        Value="{DynamicResource ControlHoverBrush}"/>
                                 <Setter TargetName="Shackle" Property="Data" Value="M5,9 L5,5 C5,0 13,0 13,5 L13,9"/>
+                                <Setter TargetName="Shackle" Property="StrokeThickness" Value="3"/>
+                                <Setter TargetName="LockBody" Property="StrokeThickness" Value="3"/>
                             </Trigger>
                             <MultiTrigger>
                                 <MultiTrigger.Conditions>
                                     <Condition Property="IsChecked" Value="True"/>
                                     <Condition Property="IsMouseOver" Value="True"/>
                                 </MultiTrigger.Conditions>
-                                <Setter TargetName="Shackle" Property="Data" Value="M5,9 L5,5 C5,0 13,0 13,5 L13,6"/>
+                                <Setter TargetName="Shackle" Property="Data" Value="M5,9 L5,5 C5,0 13,0 13,4.5"/>
+                                <Setter TargetName="Shackle" Property="StrokeThickness" Value="1.6"/>
+                                <Setter TargetName="LockBody" Property="StrokeThickness" Value="1.6"/>
                             </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -100,30 +140,9 @@
 
             <Grid x:Name="StatusArea" Grid.Row="0" Background="Transparent"
                   MouseLeftButtonDown="Header_MouseLeftButtonDown">
-                <Grid.Resources>
-                    <Style x:Key="StatusActionButtonStyle" TargetType="Button"
-                           BasedOn="{StaticResource {x:Type Button}}">
-                        <Setter Property="Width" Value="40"/>
-                        <Setter Property="VerticalAlignment" Value="Stretch"/>
-                    </Style>
-                </Grid.Resources>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <Button Grid.Column="0" Style="{StaticResource StatusActionButtonStyle}"
-                        Content="✕" FontSize="13" ToolTip="Close" Click="CloseButton_Click"/>
-                <Button Grid.Column="1" Style="{StaticResource StatusActionButtonStyle}"
-                        Content="⚙" FontSize="17" ToolTip="Settings" Click="SettingsButton_Click"/>
-                <ToggleButton x:Name="StatusLockButton" Grid.Column="2"
-                              Style="{StaticResource PositionLockButtonStyle}" VerticalAlignment="Stretch"
-                              Click="PositionLockButton_Click"/>
-                <TextBlock x:Name="StatusText" Grid.Column="3" Text="Waiting for session to start..."
+                <TextBlock x:Name="StatusText" Text="Waiting for session..."
                            FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"
-                           Margin="16,0,8,0"/>
+                           Margin="144,0,8,0"/>
             </Grid>
 
             <Grid x:Name="TelemetryArea" Grid.Row="0" Background="Transparent" Visibility="Collapsed"
@@ -136,13 +155,14 @@
                 </Grid.ColumnDefinitions>
 
                 <Border Grid.Column="3" Margin="8,0,0,0" Background="Transparent"
-                        BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" CornerRadius="5">
+                        BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1" CornerRadius="5"
+                        Padding="0,8,0,0">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
-                        <local:SteeringWheelControl x:Name="SteeringWheel" Width="132" Height="132"
+                        <local:SteeringWheelControl x:Name="SteeringWheel" Width="112" Height="112"
                                                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         <StackPanel Grid.Row="1" HorizontalAlignment="Center" Margin="0,0,0,5">
                             <TextBlock x:Name="WheelAngleText" Text="0°" FontSize="21" FontWeight="SemiBold"
@@ -194,26 +214,45 @@
                                HorizontalAlignment="Center" VerticalAlignment="Center" LineHeight="78"/>
                 </Border>
 
-                <Border Grid.ColumnSpan="4" HorizontalAlignment="Left" VerticalAlignment="Top"
-                        Margin="8,8,0,0" Background="{DynamicResource HoverControlsBrush}" CornerRadius="4" Panel.ZIndex="10">
-                    <Border.Style>
-                        <Style TargetType="Border">
-                            <Setter Property="Opacity" Value="0"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsMouseOver, ElementName=TelemetryArea}" Value="True">
-                                    <Setter Property="Opacity" Value="1"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="✕" FontSize="13" ToolTip="Close" Click="CloseButton_Click"/>
-                        <Button Content="⚙" FontSize="17" ToolTip="Settings" Click="SettingsButton_Click"/>
-                        <ToggleButton x:Name="TelemetryLockButton" Style="{StaticResource PositionLockButtonStyle}"
-                                      Click="PositionLockButton_Click"/>
-                    </StackPanel>
-                </Border>
             </Grid>
+
+            <Border Grid.Row="0" Panel.ZIndex="10">
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource ControlBarStyle}">
+                        <Setter Property="Opacity" Value="0"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Visibility, ElementName=StatusArea}" Value="Visible">
+                                <Setter Property="Opacity" Value="1"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsMouseOver, ElementName=TelemetryArea}" Value="True">
+                                <Setter Property="Opacity" Value="1"/>
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="1"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel Orientation="Horizontal">
+                    <Button Style="{StaticResource ControlBarButtonStyle}"
+                            Content="✕" FontSize="13" ToolTip="Close" Click="CloseButton_Click"/>
+                    <Button Style="{StaticResource ControlBarButtonStyle}"
+                            ToolTip="Settings" Click="SettingsButton_Click">
+                        <Viewbox Width="18" Height="18">
+                            <Path Width="24" Height="24" Fill="{DynamicResource PrimaryTextBrush}">
+                                <Path.Data>
+                                    <GeometryGroup FillRule="EvenOdd">
+                                        <PathGeometry Figures="M9,5 L10,5 L10,2 L14,2 L14,5 L15,5 L17,3 L21,7 L19,9 L19,10 L22,10 L22,14 L19,14 L19,15 L21,17 L17,21 L15,19 L14,19 L14,22 L10,22 L10,19 L9,19 L7,21 L3,17 L5,15 L5,14 L2,14 L2,10 L5,10 L5,9 L3,7 L7,3 Z"/>
+                                        <EllipseGeometry Center="12,12" RadiusX="3.5" RadiusY="3.5"/>
+                                    </GeometryGroup>
+                                </Path.Data>
+                            </Path>
+                        </Viewbox>
+                    </Button>
+                    <ToggleButton x:Name="PositionLockButton" Style="{StaticResource PositionLockButtonStyle}"
+                                  Click="PositionLockButton_Click"/>
+                </StackPanel>
+            </Border>
 
             <Border x:Name="SettingsPanel" Grid.Row="1" Background="{DynamicResource SettingsBackgroundBrush}"
                     BorderBrush="{DynamicResource ControlBorderBrush}"

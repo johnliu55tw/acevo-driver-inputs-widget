@@ -145,7 +145,7 @@ public partial class MainWindow : Window
         {
             ACEvoStatus.Replay => "Replay in progress...",
             ACEvoStatus.Pause => "Paused",
-            _ => "Waiting for session to start..."
+            _ => "Waiting for session..."
         };
         Title = status switch
         {
@@ -335,8 +335,6 @@ public partial class MainWindow : Window
     private void PositionLockButton_Click(object sender, RoutedEventArgs e)
     {
         _isPositionLocked = ((ToggleButton)sender).IsChecked == true;
-        StatusLockButton.IsChecked = _isPositionLocked;
-        TelemetryLockButton.IsChecked = _isPositionLocked;
         ApplyWindowResizeState();
         SaveSettings();
     }
@@ -524,7 +522,7 @@ public partial class MainWindow : Window
             SetThemeBrush("PanelBackgroundBrush", "#00FFFFFF");
             SetThemeBrush("GaugeTrackBrush", "#00FFFFFF");
             SetThemeBrush("ControlBorderBrush", "#B9BEC8");
-            SetThemeBrush("HoverControlsBrush", "#D9FFFFFF");
+            SetThemeBrush("ControlHoverBrush", "#DDE1E6");
             SetThemeBrush("GraphBackgroundBrush", "#00FFFFFF");
             SetThemeBrush("GraphGridBrush", "#506B7280");
             SetThemeBrush("WheelBackgroundBrush", "#00FFFFFF");
@@ -542,7 +540,7 @@ public partial class MainWindow : Window
             SetThemeBrush("PanelBackgroundBrush", "#00000000");
             SetThemeBrush("GaugeTrackBrush", "#00000000");
             SetThemeBrush("ControlBorderBrush", "#34343A");
-            SetThemeBrush("HoverControlsBrush", "#B8151518");
+            SetThemeBrush("ControlHoverBrush", "#29292E");
             SetThemeBrush("GraphBackgroundBrush", "#00000000");
             SetThemeBrush("GraphGridBrush", "#465A5A60");
             SetThemeBrush("WheelBackgroundBrush", "#00000000");
@@ -561,8 +559,7 @@ public partial class MainWindow : Window
     private void ApplySavedSettings()
     {
         _isPositionLocked = _settings.PositionLocked;
-        StatusLockButton.IsChecked = _isPositionLocked;
-        TelemetryLockButton.IsChecked = _isPositionLocked;
+        PositionLockButton.IsChecked = _isPositionLocked;
         ApplyWindowResizeState();
         ThrottleCheck.IsChecked = _settings.ShowThrottle;
         BrakeCheck.IsChecked = _settings.ShowBrake;
