@@ -15,7 +15,8 @@ public static class DebugLog
     private static readonly object Sync = new();
     private static readonly Stopwatch Clock = Stopwatch.StartNew();
     private static double _lastTelemetryLogTime = double.NegativeInfinity;
-    private static int _lastTelemetryPacketId = int.MinValue;
+    private static int _lastPhysicsPacketId = int.MinValue;
+    private static int _lastGraphicsPacketId = int.MinValue;
 
     public static bool Enabled { get; private set; }
 
@@ -54,9 +55,10 @@ public static class DebugLog
             Console.SetError(output);
             Enabled = true;
             _lastTelemetryLogTime = double.NegativeInfinity;
-            _lastTelemetryPacketId = int.MinValue;
+            _lastPhysicsPacketId = int.MinValue;
+            _lastGraphicsPacketId = int.MinValue;
             Info("Console logging enabled. Raw telemetry snapshots are sampled at 10 Hz.");
-            Info("Graphics columns: packetId, statusRaw, tcActiveRaw, absActiveRaw, gasPercentRaw, brakePercentRaw, clutchPercentRaw, gearIntRaw, steerDegreesRaw");
+            Info("Hybrid columns include physics pedals/intervention signals and graphics status/gear/steering/intervention signals.");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -65,32 +67,44 @@ public static class DebugLog
     }
 
     public static void Telemetry(
-        int packetId,
+        int physicsPacketId,
+        int graphicsPacketId,
         int statusRaw,
-        bool tcActiveRaw,
-        bool absActiveRaw,
         float gasRaw,
         float brakeRaw,
         float clutchRaw,
+        float tcInterventionRaw,
+        float absInterventionRaw,
+        int tcInActionRaw,
+        int absInActionRaw,
+        bool graphicsTcActiveRaw,
+        bool graphicsAbsActiveRaw,
+        bool tcActive,
+        bool absActive,
         int gearIntRaw,
         int steerDegreesRaw)
     {
         lock (Sync)
         {
             double now = Clock.Elapsed.TotalSeconds;
-            if (!Enabled || packetId == _lastTelemetryPacketId ||
+            if (!Enabled ||
+                (physicsPacketId == _lastPhysicsPacketId && graphicsPacketId == _lastGraphicsPacketId) ||
                 now - _lastTelemetryLogTime < TelemetryLogIntervalSeconds)
             {
                 return;
             }
 
             _lastTelemetryLogTime = now;
-            _lastTelemetryPacketId = packetId;
+            _lastPhysicsPacketId = physicsPacketId;
+            _lastGraphicsPacketId = graphicsPacketId;
             string message = string.Create(
                 CultureInfo.InvariantCulture,
-                $"packetId={packetId}, statusRaw={statusRaw}, tcActiveRaw={tcActiveRaw}, absActiveRaw={absActiveRaw}, " +
-                $"gasPercentRaw={gasRaw:R}, brakePercentRaw={brakeRaw:R}, " +
-                $"clutchPercentRaw={clutchRaw:R}, gearIntRaw={gearIntRaw}, steerDegreesRaw={steerDegreesRaw}");
+                $"physicsPacketId={physicsPacketId}, graphicsPacketId={graphicsPacketId}, statusRaw={statusRaw}, " +
+                $"physicsGasRaw={gasRaw:R}, physicsBrakeRaw={brakeRaw:R}, physicsClutchRaw={clutchRaw:R}, " +
+                $"physicsTcRaw={tcInterventionRaw:R}, physicsAbsRaw={absInterventionRaw:R}, " +
+                $"physicsTcInActionRaw={tcInActionRaw}, physicsAbsInActionRaw={absInActionRaw}, " +
+                $"graphicsTcActiveRaw={graphicsTcActiveRaw}, graphicsAbsActiveRaw={graphicsAbsActiveRaw}, " +
+                $"tcActive={tcActive}, absActive={absActive}, gearIntRaw={gearIntRaw}, steerDegreesRaw={steerDegreesRaw}");
             WriteLine("RAW", message);
         }
     }
