@@ -49,6 +49,12 @@ public sealed class PedalGraphControl : FrameworkElement
         InvalidateVisual();
     }
 
+    public void Clear()
+    {
+        _samples.Clear();
+        InvalidateVisual();
+    }
+
     protected override void OnRender(DrawingContext drawingContext)
     {
         base.OnRender(drawingContext);

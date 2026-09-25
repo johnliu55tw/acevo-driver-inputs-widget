@@ -56,7 +56,7 @@ public static class DebugLog
             _lastTelemetryLogTime = double.NegativeInfinity;
             _lastTelemetryPacketId = int.MinValue;
             Info("Console logging enabled. Raw telemetry snapshots are sampled at 10 Hz.");
-            Info("Graphics columns: packetId, gasPercentRaw, brakePercentRaw, clutchPercentRaw, gearIntRaw, steerDegreesRaw");
+            Info("Graphics columns: packetId, statusRaw, gasPercentRaw, brakePercentRaw, clutchPercentRaw, gearIntRaw, steerDegreesRaw");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -66,6 +66,7 @@ public static class DebugLog
 
     public static void Telemetry(
         int packetId,
+        int statusRaw,
         float gasRaw,
         float brakeRaw,
         float clutchRaw,
@@ -85,7 +86,7 @@ public static class DebugLog
             _lastTelemetryPacketId = packetId;
             string message = string.Create(
                 CultureInfo.InvariantCulture,
-                $"packetId={packetId}, gasPercentRaw={gasRaw:R}, brakePercentRaw={brakeRaw:R}, " +
+                $"packetId={packetId}, statusRaw={statusRaw}, gasPercentRaw={gasRaw:R}, brakePercentRaw={brakeRaw:R}, " +
                 $"clutchPercentRaw={clutchRaw:R}, gearIntRaw={gearIntRaw}, steerDegreesRaw={steerDegreesRaw}");
             WriteLine("RAW", message);
         }

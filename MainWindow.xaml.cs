@@ -13,6 +13,9 @@ public partial class MainWindow : Window
 {
     private const double LogicalMinWidth = 560;
     private const double LogicalMinTelemetryHeight = 180;
+    private const double LogicalStatusWidth = 360;
+    private const double LogicalStatusHeight = 58;
+    private const double LogicalSettingsMinWidth = 820;
     private const double CornerRadius = 10;
 
     private readonly ACEvoTelemetryReader _reader = new();
@@ -22,6 +25,12 @@ public partial class MainWindow : Window
     private DateTime _nextTopmostRefresh = DateTime.MinValue;
     private double _currentScale = 1.0;
     private double _settingsPanelLogicalHeight;
+    private double _liveLogicalWidth = 980;
+    private double _liveLogicalHeight = 286;
+    private double _statusLogicalWidth = LogicalStatusWidth;
+    private ACEvoStatus? _displayStatus;
+    private bool _isLiveDisplay;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -29,6 +38,7 @@ public partial class MainWindow : Window
         DebugLog.Info("AC EVO Simple Telemetry started.");
         _settings = AppSettings.Load();
         ApplySavedSettings();
+        SetDisplayStatus(ACEvoStatus.Off);
 
         _timer = new DispatcherTimer(DispatcherPriority.Render)
         {
@@ -67,13 +77,16 @@ public partial class MainWindow : Window
         {
             if (!_reader.IsConnected)
             {
-                SetConnectionState(false);
+                SetDisplayStatus(ACEvoStatus.Off);
             }
             return;
         }
 
-        SetConnectionState(true);
-        UpdateTelemetry(sample);
+        SetDisplayStatus(sample.Status);
+        if (sample.Status == ACEvoStatus.Live)
+        {
+            UpdateTelemetry(sample);
+        }
     }
 
     private void UpdateTelemetry(TelemetrySample sample)
@@ -103,12 +116,67 @@ public partial class MainWindow : Window
         _ => "–"
     };
 
-    private void SetConnectionState(bool connected)
+    private void SetDisplayStatus(ACEvoStatus status)
     {
-        Title = connected
-            ? "AC EVO Simple Telemetry — Connected"
-            : "AC EVO Simple Telemetry — Waiting for game";
+        bool hadDisplayState = _displayStatus.HasValue;
+        bool showLive = status == ACEvoStatus.Live;
+
+        _displayStatus = status;
+        StatusText.Text = status switch
+        {
+            ACEvoStatus.Replay => "Replay in progress...",
+            ACEvoStatus.Pause => "Paused",
+            _ => "Waiting for session to start..."
+        };
+        Title = status switch
+        {
+            ACEvoStatus.Live => "AC EVO Simple Telemetry — Live",
+            ACEvoStatus.Replay => "AC EVO Simple Telemetry — Replay",
+            ACEvoStatus.Pause => "AC EVO Simple Telemetry — Paused",
+            _ => "AC EVO Simple Telemetry — Waiting for session"
+        };
+
+        if (hadDisplayState && showLive == _isLiveDisplay)
+        {
+            return;
+        }
+
+        double settingsHeight = GetVisibleSettingsHeight();
+        double logicalWidth = (ActualWidth > 0 ? ActualWidth : Width) / _currentScale;
+        double logicalHeight = (ActualHeight > 0 ? ActualHeight : Height) / _currentScale;
+
+        if (hadDisplayState && _isLiveDisplay)
+        {
+            _liveLogicalWidth = Math.Max(LogicalMinWidth, logicalWidth);
+            _liveLogicalHeight = Math.Max(LogicalMinTelemetryHeight, logicalHeight - settingsHeight);
+        }
+        else if (hadDisplayState && SettingsPanel.Visibility != Visibility.Visible)
+        {
+            _statusLogicalWidth = Math.Max(LogicalStatusWidth, logicalWidth);
+        }
+
+        _isLiveDisplay = showLive;
+        TelemetryArea.Visibility = showLive ? Visibility.Visible : Visibility.Collapsed;
+        StatusArea.Visibility = showLive ? Visibility.Collapsed : Visibility.Visible;
+
+        if (showLive)
+        {
+            PedalGraph.Clear();
+        }
+
+        UpdateMinimumSize();
+        Width = (showLive
+            ? Math.Max(LogicalMinWidth, _liveLogicalWidth)
+            : SettingsPanel.Visibility == Visibility.Visible
+                ? Math.Max(LogicalSettingsMinWidth, _liveLogicalWidth)
+                : Math.Max(LogicalStatusWidth, _statusLogicalWidth)) * _currentScale;
+        Height = ((showLive ? _liveLogicalHeight : LogicalStatusHeight) + settingsHeight) * _currentScale;
+        SyncScaledRootSize();
     }
+
+    private double GetVisibleSettingsHeight() => SettingsPanel.Visibility == Visibility.Visible
+        ? (_settingsPanelLogicalHeight > 0 ? _settingsPanelLogicalHeight : SettingsPanel.ActualHeight)
+        : 0;
 
     private void EnsureTopmost()
     {
@@ -138,10 +206,21 @@ public partial class MainWindow : Window
             SettingsPanel.Visibility = Visibility.Collapsed;
             UpdateMinimumSize();
             Height = Math.Max(MinHeight, Height - panelHeight * _currentScale);
+            if (!_isLiveDisplay)
+            {
+                Width = Math.Max(LogicalStatusWidth, _statusLogicalWidth) * _currentScale;
+            }
             SyncScaledRootSize();
             return;
         }
 
+        if (!_isLiveDisplay)
+        {
+            _statusLogicalWidth = Math.Max(
+                LogicalStatusWidth,
+                (ActualWidth > 0 ? ActualWidth : Width) / _currentScale);
+            Width = Math.Max(LogicalSettingsMinWidth, _liveLogicalWidth) * _currentScale;
+        }
         SettingsPanel.Visibility = Visibility.Visible;
         Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () =>
         {
@@ -253,11 +332,16 @@ public partial class MainWindow : Window
 
     private void UpdateMinimumSize()
     {
-        MinWidth = LogicalMinWidth * _currentScale;
-        double settingsHeight = SettingsPanel?.Visibility == Visibility.Visible
-            ? _settingsPanelLogicalHeight
-            : 0;
-        MinHeight = (LogicalMinTelemetryHeight + settingsHeight) * _currentScale;
+        double logicalMinWidth = _isLiveDisplay ? LogicalMinWidth : LogicalStatusWidth;
+        if (SettingsPanel?.Visibility == Visibility.Visible)
+        {
+            logicalMinWidth = Math.Max(logicalMinWidth, LogicalSettingsMinWidth);
+        }
+
+        MinWidth = logicalMinWidth * _currentScale;
+        double settingsHeight = GetVisibleSettingsHeight();
+        double contentHeight = _isLiveDisplay ? LogicalMinTelemetryHeight : LogicalStatusHeight;
+        MinHeight = (contentHeight + settingsHeight) * _currentScale;
     }
 
     private void ScaledRoot_SizeChanged(object sender, SizeChangedEventArgs e)

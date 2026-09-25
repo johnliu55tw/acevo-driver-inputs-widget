@@ -17,6 +17,7 @@ public sealed class ACEvoTelemetryReader : IDisposable
     // the official declaration order. All fields used here are before the first
     // embedded substructure.
     private const long PacketIdOffset = 0;
+    private const long StatusOffset = 4;             // int32 ACEVO_STATUS
     private const long GearOffset = 68;              // int16 gear_int
     private const long GasPercentOffset = 76;        // float
     private const long BrakePercentOffset = 80;      // float
@@ -71,8 +72,9 @@ public sealed class ACEvoTelemetryReader : IDisposable
 
         try
         {
-            // A packet-id check avoids displaying a partially updated physics frame.
+            // A packet-id check avoids displaying a partially updated graphics frame.
             int packetBefore = view.ReadInt32(PacketIdOffset);
+            int statusRaw = view.ReadInt32(StatusOffset);
             int gear = view.ReadInt16(GearOffset);
             float throttle = view.ReadSingle(GasPercentOffset);
             float brake = view.ReadSingle(BrakePercentOffset);
@@ -100,10 +102,11 @@ public sealed class ACEvoTelemetryReader : IDisposable
                 return false;
             }
 
-            DebugLog.Telemetry(packetAfter, throttle, brake, clutch, gear, steerDegrees);
+            DebugLog.Telemetry(packetAfter, statusRaw, throttle, brake, clutch, gear, steerDegrees);
 
             sample = new TelemetrySample(
                 packetAfter,
+                (ACEvoStatus)statusRaw,
                 Math.Clamp(throttle, 0f, 1f),
                 Math.Clamp(brake, 0f, 1f),
                 Math.Clamp(clutch, 0f, 1f),
@@ -131,8 +134,17 @@ public sealed class ACEvoTelemetryReader : IDisposable
     public void Dispose() => Disconnect();
 }
 
+public enum ACEvoStatus
+{
+    Off = 0,
+    Replay = 1,
+    Live = 2,
+    Pause = 3
+}
+
 public readonly record struct TelemetrySample(
     int PacketId,
+    ACEvoStatus Status,
     float Throttle,
     float Brake,
     float Clutch,

@@ -54,7 +54,31 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <Grid x:Name="TelemetryArea" Grid.Row="0" Background="Transparent"
+            <Grid x:Name="StatusArea" Grid.Row="0" Background="Transparent"
+                  MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <Grid.Resources>
+                    <Style x:Key="StatusActionButtonStyle" TargetType="Button"
+                           BasedOn="{StaticResource {x:Type Button}}">
+                        <Setter Property="Width" Value="40"/>
+                        <Setter Property="VerticalAlignment" Value="Stretch"/>
+                    </Style>
+                </Grid.Resources>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock x:Name="StatusText" Grid.Column="0" Text="Waiting for session to start..."
+                           FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"
+                           Margin="8,0,16,0"/>
+                <Button Grid.Column="1" Style="{StaticResource StatusActionButtonStyle}"
+                        Content="⚙" FontSize="17" ToolTip="Settings" Click="SettingsButton_Click"/>
+                <Button Grid.Column="2" Style="{StaticResource StatusActionButtonStyle}"
+                        Content="✕" FontSize="13" ToolTip="Close" Click="CloseButton_Click"/>
+            </Grid>
+
+            <Grid x:Name="TelemetryArea" Grid.Row="0" Background="Transparent" Visibility="Collapsed"
                   MouseLeftButtonDown="Header_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -185,10 +209,6 @@
                             </ComboBox>
                         </StackPanel>
                     </StackPanel>
-                    <TextBlock Grid.Column="3"
-                               Text="Settings are saved automatically. Start with --console-log for raw telemetry output."
-                               Foreground="{DynamicResource MutedTextBrush}" FontSize="11"
-                               TextWrapping="Wrap" VerticalAlignment="Center"/>
                 </Grid>
             </Border>
         </Grid>
